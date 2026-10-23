@@ -1,4 +1,4 @@
-import { isBeyond, isDirection, nearestCandidate, perpendicularOverlap, pickNext, toRect } from './geometry.js';
+import { isBeyond, isDirection, nearestCandidate, perpendicularOverlap, pickNext, primaryGap, toRect } from './geometry.js';
 import {
   DEFAULT_SELECTORS,
   arrowOwnership,
@@ -10,7 +10,8 @@ import {
   selectorString,
 } from './targets.js';
 import { createGamepadPoller, isBackspace, normalizeKey, resolveKeymap } from './input.js';
-import { revealElement } from './scroll.js';
+import { isClippedOut, revealElement } from './scroll.js';
+import { createVirtualCursor } from './cursor.js';
 
 export const MODAL_SELECTOR = 'dialog[open], [aria-modal="true"], [data-dpad-modal]';
 export const GROUP_ATTR = 'data-dpad-group';
@@ -35,6 +36,7 @@ const DEFAULTS = Object.freeze({
   closeModalOnBack: true,
   modalSelector: MODAL_SELECTOR,
   injectStyles: true,
+  virtualCursor: false,
   now: null,
 });
 
@@ -149,6 +151,7 @@ export function createDPadBridge(options = {}) {
   let lastRepeatMove = -Infinity;
   let observer = null;
   let poller = null;
+  let cursor = null;
   let frames = new Set();
   let refreshQueued = false;
   let internalFocus = false;
@@ -248,11 +251,6 @@ export function createDPadBridge(options = {}) {
     return g && scopeRoot.contains(g) ? g : null;
   }
 
-  function panelAhead(from, panel, direction) {
-    const r = toRect(panel.getBoundingClientRect());
-    return isBeyond(from, r, direction) && perpendicularOverlap(from, r, direction) > 0;
-  }
-
   function resolveElement(ref) {
     if (!ref) return null;
     if (typeof ref === 'string') {
@@ -301,6 +299,7 @@ export function createDPadBridge(options = {}) {
     if (focusHistory.length > 20) focusHistory.shift();
     const group = groupOf(el);
     if (group) groupMemory.set(group, el);
+    if (cursor) cursor.track(el);
     emit('focus', { element: el, previous, direction, source });
     if (direction) emit('move', { from: previous, to: el, direction, source });
   }
@@ -392,6 +391,7 @@ export function createDPadBridge(options = {}) {
         }
         emit('modalopen', { modal, returnFocus });
       }
+      if (changed && cursor) cursor.refresh();
     } finally {
       syncing = false;
     }
@@ -463,6 +463,11 @@ export function createDPadBridge(options = {}) {
       }
     }
 
+    // Mid smooth-scroll the focused element may still be fully hidden; finish that
+    // scroll instantly so every rectangle below is measured in the same frame.
+    if (opts.scrollMode !== false && isClippedOut(current)) {
+      revealElement(current, { margin: opts.scrollMargin, mode: opts.scrollMode, behavior: 'auto' });
+    }
     const from = toRect(current.getBoundingClientRect());
     const cands = candidatesIn(container, current);
     const group = groupOf(current);
@@ -477,8 +482,21 @@ export function createDPadBridge(options = {}) {
       next = pickNext(from, pool, direction);
       // Still nothing: allow another panel that as a whole lies in this direction
       // and lines up with the source (e.g. a filtered grid whose only card is offset).
+      // The nearest such panel wins, then the best element inside it.
       if (!next && group) {
-        next = pickNext(from, cands.filter((c) => c.group && c.group !== group && panelAhead(from, c.group, direction)), direction);
+        let panel = null;
+        let gap = Infinity;
+        for (const c of cands) {
+          if (!c.group || c.group === group || c.group === panel) continue;
+          const r = toRect(c.group.getBoundingClientRect());
+          if (!isBeyond(from, r, direction) || perpendicularOverlap(from, r, direction) <= 0) continue;
+          const g = Math.max(0, primaryGap(from, r, direction));
+          if (g < gap) {
+            gap = g;
+            panel = c.group;
+          }
+        }
+        if (panel) next = pickNext(from, cands.filter((c) => c.group === panel), direction);
       }
       if (next && opts.rememberGroupFocus && next.group && next.group !== group) {
         const remembered = groupMemory.get(next.group);
@@ -563,6 +581,7 @@ export function createDPadBridge(options = {}) {
     if (isDirection(action)) {
       const owner = active && active !== doc.body ? arrowOwnership(active, action) : 'sdk';
       if (owner === 'native') return;
+      if (cursor) cursor.show(); // controller input: bring the virtual cursor back
       if (event.repeat) {
         const t = now();
         if (t - lastRepeatMove < opts.repeatInterval) {
@@ -579,6 +598,7 @@ export function createDPadBridge(options = {}) {
     if (action === 'ok') {
       if (isTextEntry(active)) return; // Enter submits forms / adds new lines natively.
       if (!current) return;
+      if (cursor) cursor.show();
       event.preventDefault(); // We activate exactly once via element.click().
       if (event.repeat) return;
       activate({ source: 'keyboard' });
@@ -587,7 +607,10 @@ export function createDPadBridge(options = {}) {
 
     if (action === 'back') {
       if (isBackspace(event) && isTextEntry(active)) return; // Deleting text, not Back.
-      if (back({ event, source: 'keyboard' })) event.preventDefault();
+      if (back({ event, source: 'keyboard' })) {
+        if (cursor) cursor.show();
+        event.preventDefault();
+      }
     }
   }
 
@@ -613,6 +636,7 @@ export function createDPadBridge(options = {}) {
 
   function onGamepad(action) {
     if (!mounted) return;
+    if (cursor) cursor.show();
     if (isDirection(action)) move(action);
     else if (action === 'ok') activate({ source: 'gamepad' });
     else if (action === 'back') back({ source: 'gamepad' });
@@ -678,6 +702,19 @@ export function createDPadBridge(options = {}) {
         observer = null;
       });
     }
+    if (opts.virtualCursor) {
+      cursor = createVirtualCursor({
+        doc,
+        root: scopeRoot,
+        getHost: () => topModal(),
+        listen,
+        ...(typeof opts.virtualCursor === 'object' ? opts.virtualCursor : {}),
+      });
+      disposers.push(() => {
+        cursor.destroy();
+        cursor = null;
+      });
+    }
     if (opts.gamepad) {
       poller = createGamepadPoller({
         win,
@@ -693,6 +730,7 @@ export function createDPadBridge(options = {}) {
       });
     }
     refresh();
+    if (cursor) cursor.show(); // the bridge starts in controller mode
     return api;
   }
 
@@ -737,6 +775,7 @@ export function createDPadBridge(options = {}) {
     getFocused: () => current,
     getTargets: () => targets.filter((el) => isUsableTarget(el)),
     getModal: () => topModal(),
+    getCursor: () => (cursor ? cursor.state() : null),
     get isMounted() {
       return mounted;
     },

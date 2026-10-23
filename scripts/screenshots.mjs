@@ -23,7 +23,7 @@ const settle = (page) => page.evaluate(() => document.fonts.ready).then(() => pa
 try {
   const hd = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
 
-  await hd.goto(url);
+  await hd.goto(`${url}?dpad=off`);
   await hd.keyboard.press('ArrowRight'); // does nothing: mouse-first original
   await settle(hd);
   await shot(hd, '1080p-1-home-before.jpg');

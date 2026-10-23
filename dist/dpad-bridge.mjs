@@ -469,6 +469,22 @@ function visibleArea(container, doc) {
     right: left + (container.clientWidth || r.width)
   };
 }
+function isClippedOut(el) {
+  const doc = el.ownerDocument;
+  const r = el.getBoundingClientRect();
+  let left = r.left;
+  let top = r.top;
+  let right = r.left + r.width;
+  let bottom = r.top + r.height;
+  for (const container of getScrollParents(el)) {
+    const v = visibleArea(container, doc);
+    left = Math.max(left, v.left);
+    top = Math.max(top, v.top);
+    right = Math.min(right, v.right);
+    bottom = Math.min(bottom, v.bottom);
+  }
+  return right - left < 1 || bottom - top < 1;
+}
 function axisDelta(start, end, viewStart, viewEnd, margin, mode) {
   const size = viewEnd - viewStart;
   const m = Math.max(0, Math.min(margin, (size - (end - start)) / 2));
@@ -519,6 +535,121 @@ function revealElement(el, { margin = 24, mode = "nearest", behavior = "auto" } 
   return applied;
 }
 
+// src/cursor.js
+var CURSOR_SIZE = 32;
+var CURSOR_TIP = Object.freeze({ x: 4, y: 2 });
+var POINTER_SVG = '<svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true" focusable="false"><path d="M4 2 L4 26 L10.5 20 L15 30 L19.6 28 L15.2 18.6 L24 18.6 Z" fill="var(--dpad-cursor-color,#ffc23d)" stroke="var(--dpad-cursor-outline,#14100a)" stroke-width="2" stroke-linejoin="round"/></svg>';
+var CSS = '.dpad-cursor{position:fixed;left:0;top:0;width:32px;height:32px;z-index:2147483647;pointer-events:none;opacity:0;transform:translate(-100px,-100px);filter:drop-shadow(0 2px 6px rgba(0,0,0,.55));transition:opacity .12s ease-out}.dpad-cursor.is-visible{opacity:1}@media (prefers-reduced-motion:no-preference){.dpad-cursor.is-animated{transition:transform .16s ease-out,opacity .12s ease-out}}[data-dpad-input="controller"],[data-dpad-input="controller"] *{cursor:none!important}';
+function clamp2(value, min, max) {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
+function cursorPoint(rect, viewport) {
+  const insetX = Math.min(14, rect.width * 0.15);
+  const insetY = Math.min(14, rect.height * 0.15);
+  return {
+    x: clamp2(rect.right - insetX, CURSOR_TIP.x, viewport.width - (CURSOR_SIZE - CURSOR_TIP.x)),
+    y: clamp2(rect.bottom - insetY, CURSOR_TIP.y, viewport.height - (CURSOR_SIZE - CURSOR_TIP.y))
+  };
+}
+function createVirtualCursor({ doc, root, getHost, listen, hideOnMouse = true, followMs = 450 }) {
+  const win = doc.defaultView;
+  const node = doc.createElement("div");
+  node.className = "dpad-cursor";
+  node.setAttribute("aria-hidden", "true");
+  node.setAttribute("data-dpad-ignore", "");
+  node.innerHTML = POINTER_SVG;
+  const style = doc.createElement("style");
+  style.setAttribute("data-dpad-cursor-style", "");
+  style.textContent = CSS;
+  (doc.head || doc.documentElement).appendChild(style);
+  const state = { visible: false, target: null, x: null, y: null };
+  let followUntil = 0;
+  let frame = null;
+  let lastPointer = null;
+  const now = () => win.performance ? win.performance.now() : Date.now();
+  function ensureHost() {
+    const host = getHost && getHost() || doc.body;
+    if (node.parentNode !== host) host.appendChild(node);
+  }
+  function place() {
+    const el = state.target;
+    if (!el || !el.isConnected) return;
+    const rect = el.getBoundingClientRect();
+    const viewport = {
+      width: win.innerWidth || doc.documentElement.clientWidth || 0,
+      height: win.innerHeight || doc.documentElement.clientHeight || 0
+    };
+    const p = cursorPoint(rect, viewport);
+    state.x = p.x;
+    state.y = p.y;
+    node.style.transform = `translate(${Math.round(p.x - CURSOR_TIP.x)}px, ${Math.round(p.y - CURSOR_TIP.y)}px)`;
+  }
+  function follow() {
+    frame = null;
+    place();
+    if (now() < followUntil && typeof win.requestAnimationFrame === "function") {
+      frame = win.requestAnimationFrame(follow);
+    }
+  }
+  function track(el) {
+    state.target = el;
+    ensureHost();
+    place();
+    followUntil = now() + followMs;
+    if (frame == null && typeof win.requestAnimationFrame === "function") frame = win.requestAnimationFrame(follow);
+  }
+  function show() {
+    if (state.visible) return;
+    state.visible = true;
+    ensureHost();
+    place();
+    node.classList.add("is-visible");
+    if (typeof win.requestAnimationFrame === "function") win.requestAnimationFrame(() => node.classList.add("is-animated"));
+    else node.classList.add("is-animated");
+    root.setAttribute("data-dpad-input", "controller");
+  }
+  function hide() {
+    if (!state.visible) return;
+    state.visible = false;
+    node.classList.remove("is-visible", "is-animated");
+    root.removeAttribute("data-dpad-input");
+  }
+  function onPointerMove(event) {
+    if (event.pointerType === "touch") return;
+    const pos = { x: event.clientX, y: event.clientY };
+    const moved = Math.abs(event.movementX || 0) + Math.abs(event.movementY || 0) > 3 || lastPointer && Math.abs(pos.x - lastPointer.x) + Math.abs(pos.y - lastPointer.y) > 3;
+    lastPointer = pos;
+    if (moved) hide();
+  }
+  listen(doc, "scroll", () => state.visible && place(), true);
+  listen(win, "resize", () => state.visible && place());
+  if (hideOnMouse) {
+    listen(doc, "pointermove", onPointerMove, true);
+    listen(doc, "pointerdown", hide, true);
+  }
+  return {
+    node,
+    track,
+    show,
+    hide,
+    /** Re-host (e.g. a modal opened or closed) and re-measure. */
+    refresh() {
+      ensureHost();
+      place();
+    },
+    state: () => ({ ...state }),
+    destroy() {
+      if (frame != null && typeof win.cancelAnimationFrame === "function") win.cancelAnimationFrame(frame);
+      frame = null;
+      root.removeAttribute("data-dpad-input");
+      node.remove();
+      style.remove();
+      state.target = null;
+      state.visible = false;
+    }
+  };
+}
+
 // src/bridge.js
 var MODAL_SELECTOR = 'dialog[open], [aria-modal="true"], [data-dpad-modal]';
 var GROUP_ATTR = "data-dpad-group";
@@ -543,6 +674,7 @@ var DEFAULTS = Object.freeze({
   closeModalOnBack: true,
   modalSelector: MODAL_SELECTOR,
   injectStyles: true,
+  virtualCursor: false,
   now: null
 });
 var EVENT_OPTIONS = {
@@ -638,6 +770,7 @@ function createDPadBridge(options = {}) {
   let lastRepeatMove = -Infinity;
   let observer = null;
   let poller = null;
+  let cursor = null;
   let frames = /* @__PURE__ */ new Set();
   let refreshQueued = false;
   let internalFocus = false;
@@ -718,10 +851,6 @@ function createDPadBridge(options = {}) {
     const g = el.parentElement ? el.parentElement.closest(`[${GROUP_ATTR}]`) : null;
     return g && scopeRoot.contains(g) ? g : null;
   }
-  function panelAhead(from, panel, direction) {
-    const r = toRect(panel.getBoundingClientRect());
-    return isBeyond(from, r, direction) && perpendicularOverlap(from, r, direction) > 0;
-  }
   function resolveElement(ref) {
     if (!ref) return null;
     if (typeof ref === "string") {
@@ -765,6 +894,7 @@ function createDPadBridge(options = {}) {
     if (focusHistory.length > 20) focusHistory.shift();
     const group = groupOf(el);
     if (group) groupMemory.set(group, el);
+    if (cursor) cursor.track(el);
     emit("focus", { element: el, previous, direction, source });
     if (direction) emit("move", { from: previous, to: el, direction, source });
   }
@@ -842,6 +972,7 @@ function createDPadBridge(options = {}) {
         }
         emit("modalopen", { modal, returnFocus });
       }
+      if (changed && cursor) cursor.refresh();
     } finally {
       syncing = false;
     }
@@ -905,6 +1036,9 @@ function createDPadBridge(options = {}) {
         return true;
       }
     }
+    if (opts.scrollMode !== false && isClippedOut(current)) {
+      revealElement(current, { margin: opts.scrollMargin, mode: opts.scrollMode, behavior: "auto" });
+    }
     const from = toRect(current.getBoundingClientRect());
     const cands = candidatesIn(container, current);
     const group = groupOf(current);
@@ -914,7 +1048,19 @@ function createDPadBridge(options = {}) {
       const pool = group ? cands.filter((c) => c.group !== group && perpendicularOverlap(from, c.rect, direction) > 0) : cands;
       next = pickNext(from, pool, direction);
       if (!next && group) {
-        next = pickNext(from, cands.filter((c) => c.group && c.group !== group && panelAhead(from, c.group, direction)), direction);
+        let panel = null;
+        let gap = Infinity;
+        for (const c of cands) {
+          if (!c.group || c.group === group || c.group === panel) continue;
+          const r = toRect(c.group.getBoundingClientRect());
+          if (!isBeyond(from, r, direction) || perpendicularOverlap(from, r, direction) <= 0) continue;
+          const g = Math.max(0, primaryGap(from, r, direction));
+          if (g < gap) {
+            gap = g;
+            panel = c.group;
+          }
+        }
+        if (panel) next = pickNext(from, cands.filter((c) => c.group === panel), direction);
       }
       if (next && opts.rememberGroupFocus && next.group && next.group !== group) {
         const remembered = groupMemory.get(next.group);
@@ -991,6 +1137,7 @@ function createDPadBridge(options = {}) {
     if (isDirection(action)) {
       const owner = active && active !== doc.body ? arrowOwnership(active, action) : "sdk";
       if (owner === "native") return;
+      if (cursor) cursor.show();
       if (event.repeat) {
         const t = now();
         if (t - lastRepeatMove < opts.repeatInterval) {
@@ -1006,6 +1153,7 @@ function createDPadBridge(options = {}) {
     if (action === "ok") {
       if (isTextEntry(active)) return;
       if (!current) return;
+      if (cursor) cursor.show();
       event.preventDefault();
       if (event.repeat) return;
       activate({ source: "keyboard" });
@@ -1013,7 +1161,10 @@ function createDPadBridge(options = {}) {
     }
     if (action === "back") {
       if (isBackspace(event) && isTextEntry(active)) return;
-      if (back({ event, source: "keyboard" })) event.preventDefault();
+      if (back({ event, source: "keyboard" })) {
+        if (cursor) cursor.show();
+        event.preventDefault();
+      }
     }
   }
   function onFocusIn(event) {
@@ -1035,6 +1186,7 @@ function createDPadBridge(options = {}) {
   }
   function onGamepad(action) {
     if (!mounted) return;
+    if (cursor) cursor.show();
     if (isDirection(action)) move(action);
     else if (action === "ok") activate({ source: "gamepad" });
     else if (action === "back") back({ source: "gamepad" });
@@ -1089,6 +1241,19 @@ function createDPadBridge(options = {}) {
         observer = null;
       });
     }
+    if (opts.virtualCursor) {
+      cursor = createVirtualCursor({
+        doc,
+        root: scopeRoot,
+        getHost: () => topModal(),
+        listen,
+        ...typeof opts.virtualCursor === "object" ? opts.virtualCursor : {}
+      });
+      disposers.push(() => {
+        cursor.destroy();
+        cursor = null;
+      });
+    }
     if (opts.gamepad) {
       poller = createGamepadPoller({
         win,
@@ -1104,6 +1269,7 @@ function createDPadBridge(options = {}) {
       });
     }
     refresh();
+    if (cursor) cursor.show();
     return api;
   }
   function destroy() {
@@ -1146,6 +1312,7 @@ function createDPadBridge(options = {}) {
     getFocused: () => current,
     getTargets: () => targets.filter((el) => isUsableTarget(el)),
     getModal: () => topModal(),
+    getCursor: () => cursor ? cursor.state() : null,
     get isMounted() {
       return mounted;
     },
@@ -1169,6 +1336,8 @@ export {
   collectTargets,
   createDPadBridge,
   createGamepadPoller,
+  createVirtualCursor,
+  cursorPoint,
   isUsableTarget,
   nearestCandidate,
   normalizeGamepad,

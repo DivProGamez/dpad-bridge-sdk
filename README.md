@@ -37,6 +37,7 @@ Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and d
 | **Modals** | Detects `dialog[open]`, `[aria-modal="true"]` and `[data-dpad-modal]`. Moves focus inside, keeps arrows and Tab inside, and restores focus to the opener (or to `data-dpad-restore`) on close. |
 | **Focus-aware scrolling** | Reveals the focused element inside every scrollable ancestor, with a margin. Smooth scrolling, or instant under `prefers-reduced-motion`. `nearest` or `center` mode. |
 | **Typing is safe** | Letters, Space, Backspace and Enter in text fields go to the field. Left/Right leave a text input only from the caret edge. Up/Down change a number input, Left/Right adjust a range. |
+| **Virtual cursor** (opt-in) | `virtualCursor: true` draws an on-screen pointer that follows D-pad and gamepad focus, animates between targets, stays inside the viewport, follows scrolling and moves into open modals. It sits at the target's bottom-right edge so it doesn't cover text. When a real mouse is used it hides and the native cursor returns; the next remote or gamepad input brings it back. It is a DOM overlay: browsers do not let JavaScript move the operating system's mouse pointer. |
 | **Gamepad** | Gamepad API standard mapping: D-pad or left stick moves, A = OK, B = Back. Presses are edge-detected and held directions auto-repeat. The poll loop runs only while a pad is connected, and the SDK does nothing if the API is missing. |
 | **Dynamic DOM** | Call `.refresh()`, or pass `observe: true` for a batched MutationObserver that ignores the SDK's own writes. |
 | **Clean teardown** | `.destroy()` removes every listener, the observer, the animation-frame loop, the injected stylesheet, the focus class and any `tabindex` it added. |
@@ -46,6 +47,7 @@ Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and d
 - **No canvas/WebGL conversion.** Only DOM elements can be focused. A game drawn on a `<canvas>` needs its own input code.
 - **Your own page only.** It does not affect other apps, browser chrome or Fire TV / Android TV system UI, and it never remaps OS keys. Media and voice/microphone keys are not in the keymap and pass through untouched.
 - **Virtualized lists.** Elements that are not in the DOM cannot be focused. Use the `boundary` event to load more, then `.refresh()`.
+- **The OS mouse pointer is never moved.** No web API allows that. The optional virtual cursor is a page-drawn overlay that follows focus.
 - **Key codes differ per platform.** Arrows/Enter/Escape, `GoBack`/`BrowserBack`, webOS `461` and Tizen `10009` are mapped by default. Override with `keymap`. Not verified on physical TV hardware (see [Testing](#testing)).
 - **Textarea.** Arrows edit text. Focus leaves only from the very start (Up/Left) or the very end (Down/Right).
 
@@ -114,6 +116,7 @@ The only markup change in the example is `data-dpad-focusable` on the `<div>` ca
 | `rememberGroupFocus` | `true` | Re-entering a `data-dpad-group` returns to its last-focused item. |
 | `closeModalOnBack` | `true` | Back closes the top modal when `onBack` did not handle it. |
 | `modalSelector` | `dialog[open], [aria-modal="true"], [data-dpad-modal]` | What counts as an open modal. |
+| `virtualCursor` | `false` | `true` (or `{ hideOnMouse, followMs }`) shows the DOM virtual cursor that follows focus. Colours: `--dpad-cursor-color`, `--dpad-cursor-outline`. |
 | `injectStyles` | `true` | Inject the high-contrast focus theme (customize with `--dpad-focus-color`, `--dpad-focus-width`, `--dpad-focus-offset`, `--dpad-focus-halo`). |
 | `onFocus`, `onMove`, `onActivate`, `onBoundary`, `onModalOpen`, `onModalClose` | | Event callbacks (same payloads as `on()`). |
 | `onBack(ctx)` | | `ctx = { modal, focused, event, source, closeModal() }`. Return `true` if you handled it. |
@@ -129,7 +132,7 @@ The only markup change in the example is `data-dpad-focusable` on the `<div>` ca
 | `move(direction)` | Programmatic `'up' \| 'down' \| 'left' \| 'right'`. Returns `false` at a boundary. |
 | `activate()` / `back()` | Programmatic OK / Back. |
 | `on(event, fn)` | Subscribe to `focus`, `move`, `activate`, `back`, `boundary`, `modalopen` or `modalclose`. Returns an unsubscribe function. |
-| `getFocused()`, `getTargets()`, `getModal()`, `isMounted`, `root` | Introspection. |
+| `getFocused()`, `getTargets()`, `getModal()`, `getCursor()`, `isMounted`, `root` | Introspection. `getCursor()` returns `{ visible, x, y, target }`, or `null` when the cursor is off. |
 
 ### Markup attributes
 
@@ -155,7 +158,7 @@ npm run demo
 # open http://localhost:8080/examples/tv-demo/
 ```
 
-- **`examples/tv-demo/`**: "Saffron Kitchen", an original, mouse-first recipe app styled as a cinematic 16:9 TV screen. It has a menu (Home, Favorites, Shopping list), a search box, filter chips, six photo recipe cards built as `<div onclick>`, a `<dialog>` with ingredients, and a scrollable shopping list that starts with 30 items. The **DPadBridge switch** in the header (or `?dpad=on`, or the `d` key) mounts or destroys the SDK on the **same DOM**:
+- **`examples/tv-demo/`**: "Saffron Kitchen", an original, mouse-first recipe app styled as a cinematic 16:9 TV screen. It has a menu (Home, Favorites, Shopping list), a search box, filter chips, six photo recipe cards built as `<div onclick>`, a `<dialog>` with ingredients, and a scrollable shopping list that starts with 30 items. The demo **starts with DPadBridge ON** and the virtual cursor showing, so the arrow keys work straight away. The **DPadBridge switch** in the header (also reachable by D-pad), `?dpad=off`, or the `d` key turns the SDK off for the mouse-only comparison, on the **same DOM**:
   - *Before:* only the mouse works. Arrows and Enter do nothing, and Tab never reaches the cards.
   - *After:* move with the arrows and open a recipe with Enter. Focus is contained in the dialog, and Esc/Back closes it and returns focus to the card. In the dialog, "Add to shopping list" really adds the missing ingredients, the heart button saves a favorite, and "Start cooking" counts activations. You can also scroll the list, type in the search box, or filter. The status bar shows the mode and the latest SDK event. The **Developer view** drawer shows the real integration code and the last six SDK events.
   - Everything is local: CSS, an inline SVG icon set and bundled JPEG photos (see `examples/tv-demo/assets/photos/CREDITS.md`). There are no remote fonts, images or CDNs, and it also works from `file://`. `app.js` is the original app and knows nothing about the SDK. `integration.js` holds the entire integration.
@@ -164,8 +167,8 @@ npm run demo
 ## Testing
 
 ```bash
-npm test          # 84 unit tests (node:test + jsdom), then checks dist/ matches src/
-npm run test:e2e  # 17 browser tests in headless Chromium via Playwright
+npm test          # 97 unit tests (node:test + jsdom), then checks dist/ matches src/
+npm run test:e2e  # 24 browser tests in headless Chromium via Playwright
 ```
 
 - **Unit tests** (`test/*.test.js`) cover:

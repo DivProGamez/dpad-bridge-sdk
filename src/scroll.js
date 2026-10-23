@@ -50,6 +50,27 @@ function visibleArea(container, doc) {
   };
 }
 
+/**
+ * True when `el` cannot be seen at all through its scroll containers and the
+ * viewport (e.g. a smooth scroll that has not brought it in yet).
+ */
+export function isClippedOut(el) {
+  const doc = el.ownerDocument;
+  const r = el.getBoundingClientRect();
+  let left = r.left;
+  let top = r.top;
+  let right = r.left + r.width;
+  let bottom = r.top + r.height;
+  for (const container of getScrollParents(el)) {
+    const v = visibleArea(container, doc);
+    left = Math.max(left, v.left);
+    top = Math.max(top, v.top);
+    right = Math.min(right, v.right);
+    bottom = Math.min(bottom, v.bottom);
+  }
+  return right - left < 1 || bottom - top < 1;
+}
+
 /** Delta needed on one axis to reveal [start, end] inside [viewStart, viewEnd]. */
 export function axisDelta(start, end, viewStart, viewEnd, margin, mode) {
   const size = viewEnd - viewStart;

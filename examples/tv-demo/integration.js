@@ -24,6 +24,8 @@
     bridge = DPadBridge.createDPadBridge({
       root: document.getElementById('stage'), // app + its dialog
       observe: true, // filter chips and search add/remove cards: refresh automatically
+      initialFocus: '.menu-link.is-current', // start on the menu, even after clicking the switch
+      virtualCursor: true, // on-screen pointer that follows remote/gamepad focus (hides on mouse use)
       onMove: function (e) { log('Focused: ' + label(e.to) + ' · moved ' + e.direction); },
       onActivate: function (e) { log('OK → ' + label(e.element) + ' (' + e.source + ')'); },
       onModalOpen: function () { log('Dialog opened: focus moved inside'); },
@@ -91,8 +93,8 @@
   });
 
   render(false);
-  // Separate routes for each mode: ?dpad=on starts with the SDK mounted.
-  if (/[?&]dpad=on\b/.test(location.search)) enable();
+  // Navigation is ON by default; ?dpad=off opens the mouse-only original for comparison.
+  if (!/[?&]dpad=off\b/.test(location.search)) enable();
 
   // Exposed for the automated browser tests.
   window.__demo = { enable: enable, disable: disable, get bridge() { return bridge; } };

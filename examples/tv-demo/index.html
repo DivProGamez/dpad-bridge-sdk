@@ -69,7 +69,7 @@
           <span class="sr-only">Search recipes</span>
           <input id="search" type="search" placeholder="Search recipes…" autocomplete="off">
         </label>
-        <button id="dpad-toggle" class="toggle" type="button" role="switch" aria-checked="false" data-dpad-ignore>
+        <button id="dpad-toggle" class="toggle" type="button" role="switch" aria-checked="false">
           <svg class="ic" aria-hidden="true"><use href="#i-remote"/></svg>
           <span class="toggle-label">DPadBridge</span>
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
@@ -129,7 +129,7 @@
     </dialog>
 
     <!-- ===== Demo chrome: mode, key hints, live SDK events (not part of the app) ===== -->
-    <footer class="statusbar">
+    <footer class="statusbar" data-dpad-group>
       <div class="mode" id="mode-badge">
         <svg class="ic" aria-hidden="true"><use id="mode-icon" href="#i-mouse"/></svg>
         <span class="mode-text"><strong id="mode-title">BEFORE · DPadBridge OFF</strong><small id="mode-text">Mouse only — DPadBridge not mounted</small></span>
@@ -142,7 +142,8 @@
           <h4>The whole integration</h4>
           <pre><code>const bridge = DPadBridge.createDPadBridge({
   root: document.getElementById('stage'),
-  observe: true, // cards appear/disappear with filters
+  observe: true,       // cards appear/disappear with filters
+  virtualCursor: true, // pointer overlay that follows focus
 }).mount();
 
 // Toggle off: removes every listener, class and attribute.

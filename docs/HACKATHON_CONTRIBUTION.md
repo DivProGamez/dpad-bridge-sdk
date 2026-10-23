@@ -16,6 +16,7 @@ DPadBridge is a new, standalone, MIT-licensed JavaScript SDK written for this ch
 - **Safe activation and Back**: OK runs the element's native `click()` exactly once, with no native and synthetic double fire and no machine-gunning from key repeat. Back goes through a callback, then closes a modal, then falls through to the platform, so it is never trapped.
 - **Modal management**: detection of `<dialog>`, `aria-modal` and `data-dpad-modal`, focus moved inside, arrow and Tab containment, and restoration to the opener (or a declared target) on close.
 - **Focus-aware scrolling** (`src/scroll.js`) across nested scroll containers with margins, `nearest`/`center` modes and `prefers-reduced-motion` support.
+- **Virtual cursor** (opt-in, `src/cursor.js`): an on-screen DOM pointer that follows D-pad and gamepad focus. It animates between targets, follows scrolling, moves into open modals, hides when a real mouse is used and returns with the next remote input. It is clearly a page overlay: JavaScript cannot move the OS pointer.
 - **Lifecycle**: `mount`, `refresh`, optional MutationObserver auto-refresh (filters its own writes to avoid loops), `destroy` that leaves zero listeners, classes, styles or attributes behind.
 - **Before/after demo**: an original mouse-first recipe app ("Saffron Kitchen"), styled as a cinematic 16:9 TV screen with photo recipe cards, a recipe dialog, a 30-item shopping list and a developer view of live SDK events. One switch mounts or destroys the SDK on the *same* DOM.
 
@@ -42,8 +43,8 @@ All numbers below are from real runs in this repository's cloud development envi
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Unit (node:test + jsdom 29) | `npm test` | **84 tests, 84 passed, 0 failed**, plus a `dist/` freshness check |
-| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **17 tests, 17 passed, 0 failed**. Also run with `--repeat-each=3`: 51 passed |
+| Unit (node:test + jsdom 29) | `npm test` | **97 tests, 97 passed, 0 failed**, plus a `dist/` freshness check |
+| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **24 tests, 24 passed, 0 failed**. Also run with `--repeat-each=3`: 72 passed |
 
 The unit tests cover the cases listed in the README: directional selection on grids, rows, columns, uneven layouts and ties; invisible and disabled exclusion; boundaries without focus loss; `refresh()` and observer mode; single activation; Back callback and fall-through; modal containment and restoration; scroll reveal; listener cleanup after `destroy()`; text-input safety; and gamepad normalisation and repeat with mocked `Gamepad` objects.
 
