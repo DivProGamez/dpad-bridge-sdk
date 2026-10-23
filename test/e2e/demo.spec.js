@@ -193,6 +193,91 @@ test.describe('AFTER: the same DOM with DPadBridge mounted', () => {
   });
 });
 
+test.describe('Saffron Kitchen features (real state, D-pad driven)', () => {
+  test('"Add to shopping list" really adds the missing ingredients to the list', async ({ page }) => {
+    await page.goto('/examples/tv-demo/?dpad=on');
+    await expect(page.locator('#list-count')).toHaveText('0 / 30');
+    await page.evaluate(() => window.__demo.bridge.focus('#card-salad'));
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowRight'); // Start cooking -> Add to shopping list
+    expect(await focused(page)).toBe('add-to-list');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#list-feedback')).toHaveText('Added 1 new item');
+    await expect(page.locator('#list-count')).toHaveText('0 / 31');
+    await expect(page.locator('#list li.is-new .name')).toHaveText(['Mint']);
+    await page.waitForTimeout(200);
+    await page.keyboard.press('Enter'); // again: no duplicates
+    await expect(page.locator('#list-count')).toHaveText('0 / 31');
+  });
+
+  test('favorites: the dialog heart toggles state, the card shows it, the Favorites view filters', async ({ page }) => {
+    await page.goto('/examples/tv-demo/?dpad=on');
+    await page.evaluate(() => window.__demo.bridge.focus('#card-harira'));
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('ArrowUp'); // Start cooking -> heart (top right)
+    expect(await focused(page)).toBe('fav-button');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#fav-button')).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
+    expect(await focused(page)).toBe('card-harira');
+    await expect(page.locator('#card-harira')).toHaveClass(/is-fav/);
+    await page.evaluate(() => window.__demo.bridge.focus('.menu-link[data-view="favorites"]'));
+    await page.keyboard.press('Enter');
+    await expect(page.locator('.card:not([hidden])')).toHaveCount(1);
+    await expect(page.locator('#section-name')).toHaveText('Your favorites');
+    await page.keyboard.press('ArrowDown'); // menu -> the chip row sitting between menu and grid
+    await expect.poll(() => focused(page)).toBe('All');
+    await page.keyboard.press('ArrowDown'); // chips -> the only remaining card (grid panel lies below)
+    await expect.poll(() => focused(page)).toBe('card-harira');
+  });
+
+  test('the Shopping list menu item jumps to the first item still to buy', async ({ page }) => {
+    await page.goto('/examples/tv-demo/?dpad=on');
+    await page.locator('#item-0').check();
+    await page.evaluate(() => window.__demo.bridge.focus('.menu-link[data-view="list"]'));
+    await page.keyboard.press('Enter');
+    await expect.poll(() => focused(page)).toBe('item-1');
+  });
+
+  test('developer view lists the live SDK events', async ({ page }) => {
+    await page.goto('/examples/tv-demo/');
+    await expect(page.locator('#event-state')).toHaveText('(not mounted)');
+    await page.click('#dpad-toggle');
+    await page.click('#devview summary');
+    await page.evaluate(() => window.__demo.bridge.focus('#card-shakshuka'));
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#event-list li').first()).toHaveText(/Focused: “Harira soup” · moved right/);
+    await expect(page.locator('#event-state')).toHaveText('(listening)');
+  });
+
+  test('mocked Gamepad API drives the real poller in Chromium (no physical controller)', async ({ page }) => {
+    await page.addInitScript(() => {
+      const buttons = Array.from({ length: 17 }, () => ({ pressed: false, value: 0 }));
+      const pad = { id: 'mock', index: 0, connected: true, mapping: 'standard', axes: [0, 0, 0, 0], buttons };
+      window.__pad = {
+        press(i) { buttons[i].pressed = true; buttons[i].value = 1; },
+        release(i) { buttons[i].pressed = false; buttons[i].value = 0; },
+      };
+      navigator.getGamepads = () => [pad, null, null, null];
+    });
+    await page.goto('/examples/tv-demo/?dpad=on');
+    await page.evaluate(() => window.__demo.bridge.focus('#card-shakshuka'));
+    await page.evaluate(() => window.dispatchEvent(new Event('gamepadconnected')));
+    await page.evaluate(() => window.__pad.press(15)); // D-pad right
+    await expect.poll(() => focused(page)).toBe('card-harira');
+    await page.evaluate(() => window.__pad.release(15));
+    await page.waitForTimeout(100);
+    await page.evaluate(() => window.__pad.press(0)); // A = OK
+    await expect(page.locator('#recipe-dialog')).toHaveAttribute('open', '');
+    await page.evaluate(() => window.__pad.release(0));
+    await page.waitForTimeout(100);
+    await page.evaluate(() => window.__pad.press(1)); // B = Back
+    await expect(page.locator('#recipe-dialog')).not.toHaveAttribute('open', '');
+    await page.evaluate(() => window.__pad.release(1));
+    expect(await focused(page)).toBe('card-harira');
+  });
+});
+
 test.describe('minimal example', () => {
   test('works straight from disk (file://) with the IIFE build', async ({ page }) => {
     const file = pathToFileURL(path.resolve('examples/minimal/index.html')).href;

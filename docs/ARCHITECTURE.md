@@ -46,8 +46,9 @@ For a source rect **S**, a candidate rect **C** and a direction:
 Elements inside a `data-dpad-group` container are scored in two passes:
 
 1. **Same group first.** If any candidate in the source's group lies in that direction, the best of those wins.
-2. **Leaving the group** is allowed only to candidates whose perpendicular projection overlaps the source (`perpendicularOverlap > 0`). Focus therefore never hops diagonally from the corner of a card grid into an unrelated side panel. If no such target exists, the move is a boundary: focus stays and a `boundary` event fires.
-3. **Group memory.** When focus enters another group, the item last focused there is restored, if it is still usable. This is the usual "return to where I was in that row" TV behaviour.
+2. **Leaving the group** is allowed only to candidates whose perpendicular projection overlaps the source (`perpendicularOverlap > 0`). Focus therefore never hops diagonally from the corner of a card grid into an unrelated side panel.
+3. **Panel-level fallback.** If no lined-up element exists, a candidate still qualifies when its *panel* (`data-dpad-group` container) as a whole lies beyond the source in that direction and lines up with it. Example: Down from a filter chip on the right reaches a filtered grid whose only remaining card sits on the left. A panel *beside* the source (like a side list next to a grid) does not qualify. If nothing qualifies, the move is a boundary: focus stays and a `boundary` event fires.
+4. **Group memory.** When focus enters another group, the item last focused there is restored, if it is still usable. This is the usual "return to where I was in that row" TV behaviour.
 
 Explicit `data-dpad-<direction>="#selector"` overrides run before scoring. `"none"` blocks a direction.
 

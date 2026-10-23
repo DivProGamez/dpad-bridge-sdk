@@ -17,7 +17,7 @@ DPadBridge is a new, standalone, MIT-licensed JavaScript SDK written for this ch
 - **Modal management**: detection of `<dialog>`, `aria-modal` and `data-dpad-modal`, focus moved inside, arrow and Tab containment, and restoration to the opener (or a declared target) on close.
 - **Focus-aware scrolling** (`src/scroll.js`) across nested scroll containers with margins, `nearest`/`center` modes and `prefers-reduced-motion` support.
 - **Lifecycle**: `mount`, `refresh`, optional MutationObserver auto-refresh (filters its own writes to avoid loops), `destroy` that leaves zero listeners, classes, styles or attributes behind.
-- **Before/after demo**: an original mouse-first app ("Saffron Kitchen") where one switch mounts or destroys the SDK on the *same* DOM.
+- **Before/after demo**: an original mouse-first recipe app ("Saffron Kitchen"), styled as a cinematic 16:9 TV screen with photo recipe cards, a recipe dialog, a 30-item shopping list and a developer view of live SDK events. One switch mounts or destroys the SDK on the *same* DOM.
 
 ## How it works (short)
 
@@ -42,12 +42,12 @@ All numbers below are from real runs in this repository's cloud development envi
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Unit (node:test + jsdom 29) | `npm test` | **83 tests, 83 passed, 0 failed**, plus a `dist/` freshness check |
-| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **12 tests, 12 passed, 0 failed**. Also run with `--repeat-each=3`: 36 passed |
+| Unit (node:test + jsdom 29) | `npm test` | **84 tests, 84 passed, 0 failed**, plus a `dist/` freshness check |
+| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **17 tests, 17 passed, 0 failed**. Also run with `--repeat-each=3`: 51 passed |
 
 The unit tests cover the cases listed in the README: directional selection on grids, rows, columns, uneven layouts and ties; invisible and disabled exclusion; boundaries without focus loss; `refresh()` and observer mode; single activation; Back callback and fall-through; modal containment and restoration; scroll reveal; listener cleanup after `destroy()`; text-input safety; and gamepad normalisation and repeat with mocked `Gamepad` objects.
 
-The E2E tests drive the real demo page in Chromium: before vs after, navigation over the real CSS layout, dialog open/contain/Back/restore, exactly one activation per Enter (including held Enter), list scroll reveal, typing in search, filter-driven DOM updates, teardown, reduced motion, and the minimal example loaded from `file://`.
+The E2E tests drive the real demo page in Chromium: before vs after, navigation over the real CSS layout, dialog open/contain/Back/restore, exactly one activation per Enter (including held Enter), list scroll reveal, typing in search, filter-driven DOM updates, the demo's Add to shopping list and favorites features, the developer view, a mocked Gamepad API driving the real poller, teardown, reduced motion, and the minimal example loaded from `file://`.
 
 **Not tested:** physical Fire TV, Android TV or other TV hardware, and real gamepads. Remote keys were exercised as synthesized `keydown` events in Chromium, and gamepad behaviour only with mocked Gamepad API objects. No performance or "button press reduction" figures are claimed.
 
