@@ -112,6 +112,7 @@
           <svg class="ic ic-on" aria-hidden="true"><use href="#i-heart-fill"/></svg>
         </button>
         <h2 id="dialog-title">Recipe</h2>
+        <div class="recipe-info" id="recipe-info">
         <div class="dialog-meta" id="dialog-meta"></div>
         <p id="dialog-desc" class="dialog-desc"></p>
         <h3 class="eyebrow">Ingredients</h3>
@@ -121,6 +122,22 @@
           <button id="add-to-list" class="btn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-basket"/></svg><span>Add to shopping list</span></button>
           <button id="close-dialog" class="btn ghost" type="button" data-dpad-close><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>Close</button>
         </div>
+        </div>
+        <!-- Guided cooking: real steps, Previous / Next / Finish, always an exit. -->
+        <section class="cook" id="cook-panel" hidden aria-live="polite">
+          <div class="cook-head">
+            <span class="eyebrow" id="cook-label">Cooking mode</span>
+            <span class="cook-count" id="cook-progress-text">Step 1 of 1</span>
+          </div>
+          <div class="cook-bar" role="progressbar" aria-label="Recipe progress" aria-valuemin="0" aria-valuemax="100" id="cook-bar"><span id="cook-bar-fill"></span></div>
+          <p class="cook-step" id="cook-step"></p>
+          <div class="dialog-actions">
+            <button id="cook-prev" class="btn" type="button"><svg class="ic r270" aria-hidden="true"><use href="#i-arrow"/></svg>Previous step</button>
+            <button id="cook-next" class="btn primary" type="button">Next step<svg class="ic r90" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+            <button id="cook-finish" class="btn primary" type="button" hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Finish</button>
+            <button id="cook-exit" class="btn ghost" type="button"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span>Exit cooking</span></button>
+          </div>
+        </section>
         <p class="dialog-foot">
           <span>Cooking sessions started: <strong id="start-count">0</strong></span>
           <span id="list-feedback" class="list-feedback" aria-live="polite"></span>

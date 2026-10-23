@@ -73,7 +73,8 @@ test('Enter activates exactly once and the cursor stays put', async ({ page }) =
   await page.keyboard.press('Enter');
   await page.keyboard.press('Enter');
   await expect(page.locator('#start-count')).toHaveText('1');
-  await expectCursorOn(page, '#start-cooking');
+  await expect(page.locator('#cook-progress-text')).toHaveText('Step 1 of 4');
+  await expectCursorOn(page, '#cook-next');
 });
 
 test('scrolling: off-screen list rows are revealed and the cursor stays on them, inside the viewport', async ({ page }) => {

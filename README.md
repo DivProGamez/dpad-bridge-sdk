@@ -18,6 +18,8 @@ Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and d
 | ![Before: no focus, arrow keys do nothing](docs/screenshots/1080p-1-home-before.jpg) | ![After: the focused recipe card has a saffron outline and glow](docs/screenshots/1080p-2-home-after.jpg) |
 | ![Recipe dialog opened with OK; focus is contained inside it](docs/screenshots/1080p-3-dialog-after.jpg) | ![Back closed the dialog, focus returned to the card; developer view lists live SDK events](docs/screenshots/1080p-4-restored-devview.jpg) |
 
+![Start cooking: guided step-by-step mode inside the recipe dialog](docs/screenshots/1080p-3b-cooking-after.jpg)
+
 ![1280x720: a long shopping list scrolled to the focused row](docs/screenshots/720p-5-list-scroll.jpg)
 
 <sub>Real screenshots of the running `examples/tv-demo` at 1920×1080 and 1280×720, captured with headless Chromium by `npm run screenshots`.</sub>
@@ -160,7 +162,7 @@ npm run demo
 
 - **`examples/tv-demo/`**: "Saffron Kitchen", an original, mouse-first recipe app styled as a cinematic 16:9 TV screen. It has a menu (Home, Favorites, Shopping list), a search box, filter chips, six photo recipe cards built as `<div onclick>`, a `<dialog>` with ingredients, and a scrollable shopping list that starts with 30 items. The demo **starts with DPadBridge ON** and the virtual cursor showing, so the arrow keys work straight away. The **DPadBridge switch** in the header (also reachable by D-pad), `?dpad=off`, or the `d` key turns the SDK off for the mouse-only comparison, on the **same DOM**:
   - *Before:* only the mouse works. Arrows and Enter do nothing, and Tab never reaches the cards.
-  - *After:* move with the arrows and open a recipe with Enter. Focus is contained in the dialog, and Esc/Back closes it and returns focus to the card. In the dialog, "Add to shopping list" really adds the missing ingredients, the heart button saves a favorite, and "Start cooking" counts activations. You can also scroll the list, type in the search box, or filter. The status bar shows the mode and the latest SDK event. The **Developer view** drawer shows the real integration code and the last six SDK events.
+  - *After:* move with the arrows and open a recipe with Enter. Focus is contained in the dialog, and Esc/Back closes it and returns focus to the card. In the dialog, "Add to shopping list" really adds the missing ingredients and the heart button saves a favorite. **Start cooking** opens a guided cooking mode with the recipe's real steps, a progress bar, Previous / Next / Finish, and an exit at every step. It also counts sessions. You can also scroll the list, type in the search box, or filter. The status bar shows the mode and the latest SDK event. The **Developer view** drawer shows the real integration code and the last six SDK events.
   - Everything is local: CSS, an inline SVG icon set and bundled JPEG photos (see `examples/tv-demo/assets/photos/CREDITS.md`). There are no remote fonts, images or CDNs, and it also works from `file://`. `app.js` is the original app and knows nothing about the SDK. `integration.js` holds the entire integration.
 - **`examples/minimal/`**: the quick start on a tiny page. Open `index.html` straight from disk; no server needed.
 
@@ -168,7 +170,7 @@ npm run demo
 
 ```bash
 npm test          # 97 unit tests (node:test + jsdom), then checks dist/ matches src/
-npm run test:e2e  # 24 browser tests in headless Chromium via Playwright
+npm run test:e2e  # 33 browser tests in headless Chromium via Playwright
 ```
 
 - **Unit tests** (`test/*.test.js`) cover:
@@ -183,6 +185,7 @@ npm run test:e2e  # 24 browser tests in headless Chromium via Playwright
   - text-input safety
   - gamepad normalisation and the repeat poller, with mocked `Gamepad` objects
   - `destroy()` leaving zero listeners
+- **Focus audit** (`test/e2e/audit.spec.js`, at 1920×1080 and 1280×720): maps every arrow-key move between controls and checks that every visible control can be reached from Home: the menu, search, the switch, the filters, all six cards, all 30 checkboxes and the Developer view. Each path is then replayed with real keystrokes from a fresh page load. The same spec covers the dialog and cooking controls, the guided cooking flow, filtering, both BEFORE and AFTER modes, and mouse use.
 - **End-to-end tests** (`test/e2e/demo.spec.js`) drive the real demo in headless Chromium 141: before vs after, real-layout navigation, dialog open/contain/close/restore, one activation per Enter, list scrolling, search typing, filter-driven DOM changes, Add to shopping list, favorites, the developer view, a mocked Gamepad API driving the real poller, teardown, reduced motion, and the minimal page over `file://`.
 - **Not tested:** physical Fire TV / Android TV devices and real gamepads. Gamepad support is verified only against mocked Gamepad API objects, and remote keys only as synthesized `keydown` events.
 

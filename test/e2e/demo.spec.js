@@ -94,17 +94,19 @@ test.describe('AFTER: the same DOM with DPadBridge mounted', () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('#start-count')).toHaveText('0');
     expect(await focused(page)).toBe('start-cooking');
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter'); // Start cooking -> guided step 1, focus on "Next step"
     await expect(page.locator('#start-count')).toHaveText('1');
+    await expect(page.locator('#cook-progress-text')).toHaveText('Step 1 of 4');
     await page.waitForTimeout(200);
-    await page.keyboard.press('Enter');
-    await expect(page.locator('#start-count')).toHaveText('2');
+    await page.keyboard.press('Enter'); // exactly one step forward, never two
+    await expect(page.locator('#cook-progress-text')).toHaveText('Step 2 of 4');
     // Holding Enter (auto-repeat) must not machine-gun activations.
     await page.waitForTimeout(200);
     await page.keyboard.down('Enter');
     for (let i = 0; i < 5; i += 1) await page.keyboard.down('Enter'); // repeat=true events
     await page.keyboard.up('Enter');
-    await expect(page.locator('#start-count')).toHaveText('3');
+    await expect(page.locator('#cook-progress-text')).toHaveText('Step 3 of 4');
+    await expect(page.locator('#start-count')).toHaveText('1');
   });
 
   test('a long list scrolls inside its panel to reveal the focused row', async ({ page }) => {

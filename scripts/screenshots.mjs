@@ -37,6 +37,16 @@ try {
   await settle(hd);
   await shot(hd, '1080p-3-dialog-after.jpg');
 
+  await hd.keyboard.press('Enter'); // Start cooking -> guided step 1
+  await hd.waitForTimeout(220);
+  await hd.keyboard.press('Enter'); // Next step
+  await settle(hd);
+  await shot(hd, '1080p-3b-cooking-after.jpg');
+  await hd.keyboard.press('Escape'); // leave cooking + dialog
+  await hd.waitForTimeout(150);
+  await hd.keyboard.press('Enter'); // reopen the recipe
+  await settle(hd);
+
   await hd.keyboard.press('ArrowRight');
   await hd.keyboard.press('Enter'); // add to shopping list
   await hd.keyboard.press('Escape'); // close, focus returns to the card

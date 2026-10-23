@@ -44,7 +44,7 @@ All numbers below are from real runs in this repository's cloud development envi
 | Suite | Command | Result |
 | --- | --- | --- |
 | Unit (node:test + jsdom 29) | `npm test` | **97 tests, 97 passed, 0 failed**, plus a `dist/` freshness check |
-| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **24 tests, 24 passed, 0 failed**. Also run with `--repeat-each=3`: 72 passed |
+| Browser E2E (Playwright 1.56.1, headless Chromium 141) | `npm run test:e2e` | **33 tests, 33 passed, 0 failed**. The 31 tests other than the two long reachability audits were also run with `--repeat-each=3`: 93 passed |
 
 The unit tests cover the cases listed in the README: directional selection on grids, rows, columns, uneven layouts and ties; invisible and disabled exclusion; boundaries without focus loss; `refresh()` and observer mode; single activation; Back callback and fall-through; modal containment and restoration; scroll reveal; listener cleanup after `destroy()`; text-input safety; and gamepad normalisation and repeat with mocked `Gamepad` objects.
 
