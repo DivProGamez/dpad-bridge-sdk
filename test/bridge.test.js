@@ -48,6 +48,20 @@ describe('mount and spatial navigation', () => {
     assert.equal(env.document.activeElement.id, 'c00', 'focus never falls back to <body>');
   });
 
+  test('held arrow keys (auto-repeat) are throttled to repeatInterval', () => {
+    let t = 0;
+    const env = make(gridHtml(6, 1), { now: () => t, repeatInterval: 100 });
+    env.bridge.mount();
+    env.press('ArrowRight'); // first press always moves
+    for (let i = 0; i < 6; i += 1) {
+      t += 30; // browser key repeat every ~30ms
+      const ev = env.press('ArrowRight', { repeat: true });
+      assert.equal(ev.defaultPrevented, true, 'swallowed repeats still do not scroll the page');
+    }
+    // t = 30..180: repeats allowed at 30 (first), then >= 130 => 2 extra moves
+    assert.equal(focusedId(env), 'c03');
+  });
+
   test('initialFocus option and move() API', () => {
     const env = make(gridHtml(3, 1), { initialFocus: '#c02' });
     env.bridge.mount();

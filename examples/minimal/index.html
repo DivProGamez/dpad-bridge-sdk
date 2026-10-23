@@ -35,7 +35,7 @@
     // The 5-line quick start:
     var bridge = DPadBridge.createDPadBridge({
       root: document.body,
-      onBack: function () { say('Back pressed'); return true; },
+      onBack: function () { document.getElementById('out').textContent = 'Back pressed'; return true; },
     });
     bridge.mount();
   </script>
