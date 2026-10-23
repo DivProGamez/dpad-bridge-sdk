@@ -52,6 +52,10 @@ Elements inside a `data-dpad-group` container are scored in two passes:
 
 Explicit `data-dpad-<direction>="#selector"` overrides run before scoring. `"none"` blocks a direction.
 
+If several panels lie ahead, the **nearest panel** (smallest edge gap) wins, and then the best element inside it is chosen.
+
+**Moving mid-scroll.** If the focused element is still completely hidden by its scroll container when the next key arrives (because a smooth scroll hasn't brought it in yet), the SDK finishes that scroll instantly before measuring. That way every rectangle is measured in the same frame.
+
 ## 3. Event flow
 
 ```
@@ -101,6 +105,16 @@ After each focus, the SDK stores the element's rectangle. If the focused element
 
 With `observe: true`, the root is observed for child-list changes and a filtered set of attributes (`class`, `style`, `hidden`, `disabled`, `inert`, `open`, `aria-*`, `data-dpad-*`, …). Records are batched into one `refresh()` per microtask. The SDK's own writes are filtered out so it cannot loop: a `class` change that only toggles the focus class, and `tabindex` on elements it added. A unit test checks both the filtering and that real app mutations still refresh.
 
-## 8. Lifecycle and cleanup
+## 8. Virtual cursor (opt-in)
+
+`virtualCursor: true` creates `src/cursor.js`: a single `position: fixed`, `pointer-events: none`, `aria-hidden` element with an SVG arrow. **It is not the operating system's pointer, which JavaScript cannot move.**
+
+- **Placement.** After every focus change the cursor is told the new target. The arrow's tip goes just inside the target's bottom-right corner (`cursorPoint`), so the arrow body hangs outside the element and doesn't cover its text. It is clamped so the whole pointer stays in the viewport.
+- **Following.** For about 450 ms after a move, an animation-frame loop re-measures the target to track smooth scrolling. Captured `scroll` and `resize` listeners re-measure while it's visible. Moves animate with a 160 ms transform transition, which is disabled under `prefers-reduced-motion`.
+- **Top layer.** While a modal is open the overlay is re-parented into it, because a `showModal()` dialog renders above everything else.
+- **Input modality.** Real mouse movement (more than 3 px; zero-distance synthetic moves are ignored) or a pointer press hides the cursor and removes `data-dpad-input="controller"` from the root, which brings the native pointer back. The next handled remote key or gamepad action shows the cursor again. While controller mode is active the native pointer is hidden with `cursor: none`.
+- **Cleanup.** `destroy()` removes the overlay, its stylesheet, the attribute and its listeners.
+
+## 9. Lifecycle and cleanup
 
 Every `addEventListener` goes through one `listen()` helper that records a disposer. `destroy()` runs all disposers: window `keydown`, the gamepad connect/disconnect listeners and frame loop, document `focusin` and capture `close`, and the observer. It also cancels pending animation frames, releases the reference-counted `<style>` (shared by bridges in the same document), removes the focus class, `tabindex` attributes and `data-dpad-bridge` root marker, and clears all state. Unit tests spy on `add/removeEventListener` and assert that zero listeners remain.

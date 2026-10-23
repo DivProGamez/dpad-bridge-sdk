@@ -15,7 +15,7 @@ const ringCount = (page) => page.evaluate(() => document.querySelectorAll('.dpad
 
 test.describe('BEFORE: the original mouse-first app', () => {
   test('arrow keys and Enter do nothing; cards are unreachable by keyboard', async ({ page }) => {
-    await page.goto('/examples/tv-demo/');
+    await page.goto('/examples/tv-demo/?dpad=off');
     await expect(page.locator('#mode-badge')).toContainText('BEFORE');
     for (const key of ['ArrowRight', 'ArrowDown', 'ArrowDown', 'Enter']) await page.keyboard.press(key);
     expect(await ringCount(page)).toBe(0);
@@ -32,7 +32,7 @@ test.describe('BEFORE: the original mouse-first app', () => {
 
 test.describe('AFTER: the same DOM with DPadBridge mounted', () => {
   test('the toggle mounts the SDK with exactly one visible, really-focused element', async ({ page }) => {
-    await page.goto('/examples/tv-demo/');
+    await page.goto('/examples/tv-demo/?dpad=off');
     await page.click('#dpad-toggle');
     await expect(page.locator('#mode-badge')).toContainText('AFTER');
     expect(await ringCount(page)).toBe(1);
@@ -62,12 +62,14 @@ test.describe('AFTER: the same DOM with DPadBridge mounted', () => {
     expect(await active(page)).toBe('card-chebakia'); // native focus follows the ring
   });
 
-  test('edges keep focus (no diagonal jump into the list panel)', async ({ page }) => {
+  test('edges keep focus, and no diagonal jump into the list panel', async ({ page }) => {
     await page.goto('/examples/tv-demo/?dpad=on');
-    await page.evaluate(() => window.__demo.bridge.focus('#card-chebakia'));
-    await page.keyboard.press('ArrowDown');
-    expect(await focused(page)).toBe('card-chebakia');
+    await page.keyboard.press('ArrowUp'); // already on the top row
+    expect(await focused(page)).toBe('Home');
     await expect(page.locator('#log')).toContainText('Edge reached');
+    await page.evaluate(() => window.__demo.bridge.focus('#card-chebakia'));
+    await page.keyboard.press('ArrowDown'); // the status bar lies below; the list beside it is skipped
+    expect(await focused(page)).toBe('Developer view');
   });
 
   test('OK opens the dialog, focus is contained, Back closes it and restores the card', async ({ page }) => {
@@ -240,7 +242,7 @@ test.describe('Saffron Kitchen features (real state, D-pad driven)', () => {
   });
 
   test('developer view lists the live SDK events', async ({ page }) => {
-    await page.goto('/examples/tv-demo/');
+    await page.goto('/examples/tv-demo/?dpad=off');
     await expect(page.locator('#event-state')).toHaveText('(not mounted)');
     await page.click('#dpad-toggle');
     await page.click('#devview summary');

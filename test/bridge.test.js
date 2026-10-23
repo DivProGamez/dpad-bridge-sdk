@@ -146,6 +146,25 @@ describe('mount and spatial navigation', () => {
     assert.equal(focusedId(env), 'only');
   });
 
+  test('of several panels ahead, the nearest one wins', () => {
+    const env = make(`
+      <div data-dpad-group data-rect="0,0,700,40">
+        <button id="dessert" data-rect="600,0,100,40">Dessert</button>
+      </div>
+      <main data-dpad-group data-rect="0,80,700,300">
+        <button id="card" data-rect="0,80,220,140">Cookies</button>
+      </main>
+      <footer data-dpad-group data-rect="0,420,700,40">
+        <button id="dev" data-rect="300,420,120,40">Developer view</button>
+      </footer>`);
+    env.bridge.mount();
+    env.bridge.focus('#dessert');
+    env.press('ArrowDown');
+    assert.equal(focusedId(env), 'card');
+    env.press('ArrowDown');
+    assert.equal(focusedId(env), 'dev');
+  });
+
   test('native Tab / mouse focus is adopted, keeping tab semantics', () => {
     const env = make(gridHtml(3, 1));
     env.bridge.mount();
@@ -651,5 +670,20 @@ describe('destroy', () => {
     off();
     env.press('ArrowRight');
     assert.deepEqual(moves, ['c01']);
+  });
+});
+
+describe('moving while a smooth scroll is unfinished', () => {
+  test('a focused row still hidden below its list is revealed first, then navigation continues', () => {
+    let items = '';
+    for (let i = 0; i < 10; i += 1) items += `<button id="i${i}" data-rect="0,${i * 50},200,40">Item ${i}</button>`;
+    const env = make(`<aside data-dpad-group><div id="list" data-rect="0,0,200,200" data-scroll="500">${items}</div></aside>
+      <footer data-dpad-group data-rect="0,220,700,40"><button id="dev" data-rect="300,220,120,40">Dev</button></footer>`);
+    env.bridge.mount();
+    env.bridge.focus('#i9');
+    env.$('#list').scrollTop = 0; // as if the smooth scroll had not started moving yet
+    env.press('ArrowDown');
+    assert.equal(focusedId(env), 'dev');
+    assert.ok(env.$('#list').scrollTop > 0, 'the list was scrolled to the focused row first');
   });
 });

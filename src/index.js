@@ -23,5 +23,6 @@ export {
   createGamepadPoller,
 } from './input.js';
 export { revealElement } from './scroll.js';
+export { createVirtualCursor, cursorPoint } from './cursor.js';
 
 export const VERSION = '0.1.0';

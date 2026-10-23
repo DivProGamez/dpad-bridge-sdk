@@ -66,6 +66,8 @@ export interface DPadBridgeOptions {
   closeModalOnBack?: boolean;
   modalSelector?: string;
   injectStyles?: boolean;
+  /** DOM virtual cursor that follows focus (not the OS pointer). Default false. */
+  virtualCursor?: boolean | { hideOnMouse?: boolean; followMs?: number };
   now?: () => number;
   onFocus?: (e: FocusEvent) => void;
   onMove?: (e: MoveEvent) => void;
@@ -99,6 +101,7 @@ export interface DPadBridge {
   getFocused(): Element | null;
   getTargets(): Element[];
   getModal(): Element | null;
+  getCursor(): { visible: boolean; x: number | null; y: number | null; target: Element | null } | null;
   readonly isMounted: boolean;
   readonly root: Element;
 }
@@ -140,3 +143,5 @@ export function createGamepadPoller(options: GamepadOptions & {
 
 export function revealElement(el: Element, options?: { margin?: number; mode?: 'nearest' | 'center'; behavior?: 'auto' | 'smooth' }):
   Array<{ container: Element; dx: number; dy: number }>;
+
+export function cursorPoint(rect: Rect, viewport: { width: number; height: number }): { x: number; y: number };
