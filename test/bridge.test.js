@@ -118,7 +118,7 @@ describe('mount and spatial navigation', () => {
         <button id="g1" data-rect="0,0,200,100">1</button>
         <button id="g2" data-rect="220,0,200,100">2</button>
       </main>
-      <aside data-dpad-group>
+      <aside data-dpad-group data-rect="460,0,200,200">
         <button id="l1" data-rect="460,40,200,40">a</button>
         <button id="l2" data-rect="460,140,200,40">b</button>
       </aside>`);
@@ -128,6 +128,22 @@ describe('mount and spatial navigation', () => {
     assert.equal(focusedId(env), 'g2', 'boundary instead of a diagonal jump to l2');
     env.press('ArrowRight');
     assert.equal(focusedId(env), 'l1', 'in-beam exit still works');
+  });
+
+  test('leaving a group reaches a panel that lies ahead even if its items are offset', () => {
+    // A filter toolbar on the right above a grid whose only visible card is on the left.
+    const env = make(`
+      <div data-dpad-group data-rect="0,0,700,40">
+        <button id="all" data-rect="400,0,80,40">All</button>
+        <button id="dessert" data-rect="600,0,100,40">Dessert</button>
+      </div>
+      <main data-dpad-group data-rect="0,80,700,300">
+        <button id="only" data-rect="0,80,220,140">Cookies</button>
+      </main>`);
+    env.bridge.mount();
+    env.bridge.focus('#dessert');
+    env.press('ArrowDown');
+    assert.equal(focusedId(env), 'only');
   });
 
   test('native Tab / mouse focus is adopted, keeping tab semantics', () => {

@@ -6,13 +6,25 @@
   var bridge = null;
   var toggle = document.getElementById('dpad-toggle');
   var logEl = document.getElementById('log');
+  var events = document.getElementById('event-list');
+
+  var HINTS_ON =
+    '<span class="key keys4">' + arrow('r270') + arrow('') + arrow('r90') + arrow('r180') + '</span> Move' +
+    '<span class="sep"></span><span class="key">Enter</span> OK' +
+    '<span class="sep"></span><span class="key">Esc</span> Back' +
+    '<span class="sep"></span><span class="key" title="Gamepad: D-pad moves, A = OK, B = Back"><svg class="ic" aria-hidden="true"><use href="#i-gamepad"/></svg></span>';
+  var HINTS_OFF = 'Arrow keys do nothing yet: recipe cards are plain &lt;div&gt;s with click handlers.';
+
+  function arrow(rot) {
+    return '<svg class="ic" aria-hidden="true"><use href="#i-arrow"/></svg>'.replace('<svg', rot ? '<svg data-r="' + rot + '"' : '<svg');
+  }
 
   function enable() {
     if (bridge) return;
     bridge = DPadBridge.createDPadBridge({
       root: document.getElementById('stage'), // app + its dialog
       observe: true, // filter chips and search add/remove cards: refresh automatically
-      onMove: function (e) { log('Move ' + e.direction + ' → ' + label(e.to)); },
+      onMove: function (e) { log('Focused: ' + label(e.to) + ' · moved ' + e.direction); },
       onActivate: function (e) { log('OK → ' + label(e.element) + ' (' + e.source + ')'); },
       onModalOpen: function () { log('Dialog opened: focus moved inside'); },
       onModalClose: function (e) { log('Dialog closed: focus restored to ' + label(e.restoredTo)); },
@@ -23,7 +35,7 @@
       },
     }).mount();
     render(true);
-    log('DPadBridge mounted');
+    log('DPadBridge mounted: focused ' + label(bridge.getFocused()));
   }
 
   function disable() {
@@ -38,21 +50,33 @@
     toggle.setAttribute('aria-checked', String(on));
     document.getElementById('toggle-state').textContent = on ? 'ON' : 'OFF';
     document.body.classList.toggle('dpad-on', on);
-    document.getElementById('mode-badge').textContent = on ? 'AFTER · DPadBridge on' : 'BEFORE · mouse-first original';
-    document.getElementById('hints').innerHTML = on
-      ? '<kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd>/OK select · <kbd>Esc</kbd>/Back close · Gamepad: D-pad, A, B'
-      : 'Arrow keys do nothing yet. The recipe cards are plain &lt;div&gt;s with click handlers: no keyboard or remote access.';
+    document.getElementById('mode-icon').setAttribute('href', on ? '#i-remote' : '#i-mouse');
+    document.getElementById('mode-title').textContent = on ? 'AFTER · DPadBridge ON' : 'BEFORE · DPadBridge OFF';
+    document.getElementById('mode-text').textContent = on
+      ? 'Remote navigation enabled — DPadBridge mounted'
+      : 'Mouse only — DPadBridge not mounted';
+    document.getElementById('event-state').textContent = on ? '(listening)' : '(not mounted)';
+    var hints = document.getElementById('hints');
+    hints.innerHTML = on ? HINTS_ON : HINTS_OFF;
+    Array.prototype.forEach.call(hints.querySelectorAll('svg[data-r]'), function (svg) {
+      svg.classList.add(svg.getAttribute('data-r'));
+    });
   }
 
   function label(el) {
     if (!el) return 'nothing';
-    var t = el.querySelector && el.querySelector('.card-title');
+    var t = el.querySelector && el.querySelector('.card-title, .name');
     var text = (t ? t.textContent : el.getAttribute('aria-label') || el.textContent || el.placeholder || el.id || el.tagName).trim();
+    if (!t && el.closest && el.closest('label')) text = el.closest('label').textContent.trim();
     return '“' + text.replace(/\s+/g, ' ').slice(0, 28) + '”';
   }
 
   function log(msg) {
     logEl.textContent = msg;
+    var li = document.createElement('li');
+    li.textContent = msg;
+    events.insertBefore(li, events.firstChild);
+    while (events.children.length > 6) events.removeChild(events.lastChild);
   }
 
   toggle.addEventListener('click', function () { (bridge ? disable : enable)(); });
@@ -66,6 +90,7 @@
     }
   });
 
+  render(false);
   // Separate routes for each mode: ?dpad=on starts with the SDK mounted.
   if (/[?&]dpad=on\b/.test(location.search)) enable();
 

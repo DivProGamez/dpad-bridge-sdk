@@ -3,19 +3,32 @@
 (function () {
   'use strict';
 
+  var PHOTOS = 'assets/photos/';
   var RECIPES = [
-    { id: 'shakshuka', name: 'Shakshuka', mins: 25, tags: ['veg'], art: '🍳', hue: 14,
-      desc: 'Eggs poached in a smoky tomato and pepper sauce. Serve with warm bread.' },
-    { id: 'harira', name: 'Harira soup', mins: 45, tags: [], art: '🥣', hue: 32,
-      desc: 'Lentils, chickpeas and tomato with herbs and a squeeze of lemon.' },
-    { id: 'salad', name: 'Orange & olive salad', mins: 10, tags: ['quick', 'veg'], art: '🥗', hue: 96,
-      desc: 'Sliced oranges, black olives, red onion, cumin and olive oil.' },
-    { id: 'tagine', name: 'Chicken tagine', mins: 70, tags: [], art: '🍲', hue: 40,
-      desc: 'Slow-cooked chicken with preserved lemon, olives and saffron.' },
-    { id: 'msemen', name: 'Msemen flatbread', mins: 35, tags: ['veg'], art: '🫓', hue: 46,
-      desc: 'Flaky, square griddle bread, great with honey or cheese.' },
-    { id: 'chebakia', name: 'Sesame cookies', mins: 15, tags: ['quick', 'sweet', 'veg'], art: '🍪', hue: 28,
-      desc: 'Crisp sesame cookies glazed with honey and orange blossom.' },
+    { id: 'shakshuka', name: 'Shakshuka', mins: 25, yield: 'Serves 2', tags: ['veg'],
+      photo: 'shakshuka.jpg', tall: 'shakshuka-tall.jpg',
+      desc: 'Eggs gently poached in a smoky tomato and pepper sauce. Serve with warm bread.',
+      ingredients: ['Eggs', 'Tomatoes', 'Red peppers', 'Onion', 'Garlic', 'Cumin', 'Paprika', 'Olive oil'] },
+    { id: 'harira', name: 'Harira soup', mins: 45, yield: 'Serves 6', tags: ['veg'],
+      photo: 'harira.jpg',
+      desc: 'Lentils, chickpeas and tomato simmered with fresh herbs, finished with a squeeze of lemon.',
+      ingredients: ['Lentils', 'Chickpeas', 'Tomatoes', 'Celery', 'Onion', 'Coriander', 'Parsley', 'Lemons'] },
+    { id: 'salad', name: 'Orange & olive salad', mins: 10, yield: 'Serves 4', tags: ['quick', 'veg'],
+      photo: 'salad.jpg',
+      desc: 'Juicy oranges, black olives and crisp greens with cumin and a drizzle of olive oil.',
+      ingredients: ['Oranges', 'Black olives', 'Red onion', 'Mint', 'Cumin', 'Olive oil'] },
+    { id: 'tagine', name: 'Chicken tagine', mins: 70, yield: 'Serves 4', tags: [],
+      photo: 'tagine.jpg', tall: 'tagine.jpg',
+      desc: 'Slow-cooked chicken with preserved lemon, green olives and saffron.',
+      ingredients: ['Chicken thighs', 'Preserved lemon', 'Green olives', 'Saffron', 'Ginger', 'Onion', 'Garlic'] },
+    { id: 'msemen', name: 'Msemen flatbread', mins: 35, yield: 'Makes 8', tags: ['veg'],
+      photo: 'msemen.jpg', tall: 'msemen.jpg',
+      desc: 'Flaky, square griddle bread, great with honey or cheese.',
+      ingredients: ['Flour', 'Semolina', 'Butter', 'Olive oil', 'Salt', 'Honey'] },
+    { id: 'chebakia', name: 'Sesame cookies', mins: 15, yield: 'Makes 12', tags: ['quick', 'sweet', 'veg'],
+      photo: 'cookies.jpg',
+      desc: 'Crisp sesame cookies glazed with honey and orange blossom.',
+      ingredients: ['Sesame seeds', 'Flour', 'Butter', 'Honey', 'Orange blossom water', 'Almonds'] },
   ];
 
   var LIST = ['Eggs', 'Tomatoes', 'Red peppers', 'Garlic', 'Cumin', 'Paprika', 'Lentils', 'Chickpeas',
@@ -26,9 +39,16 @@
   var grid = document.getElementById('grid');
   var list = document.getElementById('list');
   var dialog = document.getElementById('recipe-dialog');
-  var startCount = 0;
+  var emptyEl = document.getElementById('empty');
+  var state = { view: 'all', filter: 'all', query: '' };
   var favorites = {};
+  var startCount = 0;
+  var addedCount = 0;
   var openRecipe = null;
+
+  function icon(name) {
+    return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"/></svg>';
+  }
 
   // --- recipe cards: <div>s with click handlers, the classic mouse-first pattern
   RECIPES.forEach(function (r) {
@@ -37,67 +57,111 @@
     card.id = 'card-' + r.id;
     card.setAttribute('data-dpad-focusable', ''); // inert unless DPadBridge is mounted
     card.setAttribute('data-tags', r.tags.join(' '));
-    card.style.setProperty('--hue', r.hue);
     card.innerHTML =
-      '<div class="card-art" aria-hidden="true">' + r.art + '</div>' +
+      '<img class="card-photo" src="' + PHOTOS + r.photo + '" alt="">' +
+      '<span class="fav-badge" title="In favorites">' + icon('heart-fill') + '</span>' +
       '<div class="card-text"><div class="card-title">' + r.name + '</div>' +
-      '<div class="card-meta">' + r.mins + ' min' + (r.tags.indexOf('veg') >= 0 ? ' · vegetarian' : '') + '</div></div>';
+      '<div class="card-meta"><span>' + icon('clock') + r.mins + ' min</span>' +
+      (r.tags.indexOf('veg') >= 0 ? '<span>' + icon('leaf') + 'Vegetarian</span>' : '<span>' + icon('users') + r.yield + '</span>') +
+      '</div></div>';
     card.addEventListener('click', function () { showRecipe(r); });
     grid.appendChild(card);
   });
 
   // --- long shopping list in its own scroll container
-  LIST.forEach(function (item, i) {
-    var li = document.createElement('li');
-    li.innerHTML = '<label><input type="checkbox" id="item-' + i + '"> <span>' + item + '</span></label>';
-    list.appendChild(li);
-  });
+  LIST.forEach(function (item, i) { list.appendChild(listItem('item-' + i, item, false)); });
   list.addEventListener('change', updateCount);
   updateCount();
 
-  function updateCount() {
-    var done = list.querySelectorAll('input:checked').length;
-    document.getElementById('list-count').textContent = done + ' / ' + LIST.length;
+  function listItem(id, name, isNew) {
+    var li = document.createElement('li');
+    if (isNew) li.className = 'is-new';
+    li.innerHTML = '<label><input type="checkbox" id="' + id + '"> <span class="name">' + name + '</span>' +
+      (isNew ? '<span class="new-tag">Added</span>' : '') + '</label>';
+    return li;
   }
 
-  // --- menu links switch the section title
+  function updateCount() {
+    var total = list.querySelectorAll('input').length;
+    var done = list.querySelectorAll('input:checked').length;
+    document.getElementById('list-count').textContent = done + ' / ' + total;
+  }
+
+  function findItem(name) {
+    var spans = list.querySelectorAll('.name');
+    for (var i = 0; i < spans.length; i++) {
+      if (spans[i].textContent.toLowerCase() === name.toLowerCase()) return spans[i].parentNode.querySelector('input');
+    }
+    return null;
+  }
+
+  // --- filtering: menu view + chip + search, all real
+  function applyFilters() {
+    var visible = 0;
+    RECIPES.forEach(function (r) {
+      var card = document.getElementById('card-' + r.id);
+      var show = (state.view !== 'favorites' || favorites[r.id]) &&
+        (state.filter === 'all' || r.tags.indexOf(state.filter) >= 0) &&
+        (state.query === '' || r.name.toLowerCase().indexOf(state.query) >= 0);
+      card.hidden = !show;
+      card.classList.toggle('is-fav', !!favorites[r.id]);
+      if (show) visible += 1;
+    });
+    emptyEl.hidden = visible > 0;
+    emptyEl.textContent = state.view === 'favorites' && !Object.keys(favorites).some(function (k) { return favorites[k]; })
+      ? 'No favorites yet. Open a recipe and press the heart.'
+      : 'No recipes match this filter.';
+    document.getElementById('section-name').textContent = state.view === 'favorites' ? 'Your favorites' : 'Tonight’s picks';
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('.menu-link'), function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
+      var view = link.getAttribute('data-view');
+      if (view === 'list') {
+        // Jump to the first item still to buy.
+        var next = list.querySelector('input:not(:checked)') || list.querySelector('input');
+        if (next) next.focus();
+        return;
+      }
       document.querySelectorAll('.menu-link').forEach(function (l) { l.classList.remove('is-current'); });
       link.classList.add('is-current');
-      document.getElementById('section-name').textContent = link.getAttribute('data-section');
+      state.view = view;
+      applyFilters();
     });
   });
 
-  // --- filter chips hide/show cards (a real DOM change)
   Array.prototype.forEach.call(document.querySelectorAll('.chip'), function (chip) {
     chip.addEventListener('click', function () {
       document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('is-on'); });
       chip.classList.add('is-on');
-      var f = chip.getAttribute('data-filter');
-      Array.prototype.forEach.call(grid.children, function (card) {
-        card.hidden = f !== 'all' && card.getAttribute('data-tags').split(' ').indexOf(f) < 0;
-      });
+      state.filter = chip.getAttribute('data-filter');
+      applyFilters();
     });
   });
 
-  // --- search filters by name as you type
   document.getElementById('search').addEventListener('input', function (e) {
-    var q = e.target.value.trim().toLowerCase();
-    Array.prototype.forEach.call(grid.children, function (card) {
-      card.hidden = q !== '' && card.textContent.toLowerCase().indexOf(q) < 0;
-    });
+    state.query = e.target.value.trim().toLowerCase();
+    applyFilters();
   });
 
   // --- recipe dialog
   function showRecipe(r) {
     openRecipe = r;
+    var art = document.getElementById('dialog-art');
+    var src = PHOTOS + (r.tall || r.photo);
+    document.getElementById('dialog-photo').src = src;
+    art.style.backgroundImage = 'url("' + src + '")';
+    art.classList.toggle('is-wide', !r.tall);
     document.getElementById('dialog-title').textContent = r.name;
-    document.getElementById('dialog-meta').textContent = r.mins + ' minutes';
+    document.getElementById('dialog-meta').innerHTML =
+      '<span>' + icon('clock') + r.mins + ' minutes</span>' +
+      (r.tags.indexOf('veg') >= 0 ? '<span>' + icon('leaf') + 'Vegetarian</span>' : '') +
+      '<span>' + icon('users') + r.yield + '</span>';
     document.getElementById('dialog-desc').textContent = r.desc;
-    document.getElementById('dialog-art').textContent = r.art;
-    dialog.style.setProperty('--hue', r.hue);
+    document.getElementById('dialog-ingredients').innerHTML = r.ingredients.map(function (i) { return '<li>' + i + '</li>'; }).join('');
+    document.querySelector('#add-to-list span').textContent = 'Add to shopping list';
+    document.getElementById('list-feedback').textContent = '';
     syncFav();
     dialog.showModal();
   }
@@ -106,18 +170,49 @@
     var on = !!favorites[openRecipe.id];
     var fav = document.getElementById('fav-button');
     fav.setAttribute('aria-pressed', String(on));
-    fav.textContent = on ? '♥ In favorites' : '♡ Add to favorites';
+    fav.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
+    fav.title = fav.getAttribute('aria-label');
   }
 
   document.getElementById('start-cooking').addEventListener('click', function () {
     startCount += 1;
     document.getElementById('start-count').textContent = String(startCount);
   });
+
   document.getElementById('fav-button').addEventListener('click', function () {
     favorites[openRecipe.id] = !favorites[openRecipe.id];
     syncFav();
+    applyFilters();
   });
+
+  // Adds missing ingredients to the top of the list and un-ticks ones already bought.
+  document.getElementById('add-to-list').addEventListener('click', function () {
+    var added = 0;
+    var restored = 0;
+    openRecipe.ingredients.slice().reverse().forEach(function (name) {
+      var input = findItem(name);
+      if (!input) {
+        addedCount += 1;
+        list.insertBefore(listItem('item-add-' + addedCount, name, true), list.firstChild);
+        added += 1;
+      } else if (input.checked) {
+        input.checked = false;
+        restored += 1;
+      }
+    });
+    updateCount();
+    var parts = [];
+    if (added) parts.push('Added ' + added + ' new item' + (added > 1 ? 's' : ''));
+    if (restored) parts.push(restored + ' marked to buy again');
+    document.getElementById('list-feedback').textContent = parts.length
+      ? parts.join(' · ')
+      : 'All ' + openRecipe.ingredients.length + ' ingredients are already on your list';
+    document.querySelector('#add-to-list span').textContent = 'On your list';
+  });
+
   document.getElementById('close-dialog').addEventListener('click', function () { dialog.close(); });
   // Mouse users can also click the backdrop to close.
   dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+
+  applyFilters();
 })();

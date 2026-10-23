@@ -4,26 +4,73 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Saffron Kitchen: DPadBridge before/after demo</title>
-  <meta name="description" content="A mouse-first HTML5 TV-style app shown before and after adding DPadBridge SDK.">
+  <meta name="description" content="A mouse-first HTML5 TV-style recipe app shown before and after adding DPadBridge SDK.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Local icon set (inline so it also works from file://). -->
+  <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="g-saffron" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffd76a"/><stop offset="1" stop-color="#ff9a1f"/>
+      </linearGradient>
+    </defs>
+    <symbol id="i-saffron" viewBox="0 0 48 48">
+      <g fill="url(#g-saffron)">
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z"/>
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z" transform="rotate(60 24 24)"/>
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z" transform="rotate(120 24 24)"/>
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z" transform="rotate(180 24 24)"/>
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z" transform="rotate(240 24 24)"/>
+        <path d="M24 4c4 6 4 13 0 19-4-6-4-13 0-19z" transform="rotate(300 24 24)"/>
+      </g>
+      <circle cx="24" cy="24" r="4.5" fill="#d9381e"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.8V20h4.8v-5.6h3.4V20h4.8V9.8"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.2s-7.4-4.5-9.3-9.2A5.1 5.1 0 0 1 12 6.3a5.1 5.1 0 0 1 9.3 4.7C19.4 15.7 12 20.2 12 20.2z"/></symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M12 20.2s-7.4-4.5-9.3-9.2A5.1 5.1 0 0 1 12 6.3a5.1 5.1 0 0 1 9.3 4.7C19.4 15.7 12 20.2 12 20.2z"/></symbol>
+    <symbol id="i-basket" viewBox="0 0 24 24"><path d="M4.5 9.5h15l-1.6 9.6a2 2 0 0 1-2 1.7H8.1a2 2 0 0 1-2-1.7z"/><path d="M8.5 9.5 12 3.8l3.5 5.7"/><path d="M10 13.5v3.5M14 13.5v3.5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.8"/><path d="m20 20-4-4"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.8"/><path d="M12 7.2V12l3.2 2"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M5 19.5C5 10.5 10.5 5 20 4.5c0 9.5-5.5 15-14.5 15"/><path d="m5 19.5 7.5-7.5"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.2" r="3.4"/><path d="M2.8 19.8a6.2 6.2 0 0 1 12.4 0"/><path d="M15.8 4.9a3.4 3.4 0 0 1 0 6.6"/><path d="M18 14.1a6.2 6.2 0 0 1 3.4 5.7"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="M7.5 4.6v14.8L20 12z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="5"/><circle cx="12" cy="9" r="2.3"/><path d="M12 14.4v.1M12 17.4v.1"/></symbol>
+    <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="6.2" y="3" width="11.6" height="18" rx="5.8"/><path d="M12 6.8v3.4"/></symbol>
+    <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M6.5 8h11a4.3 4.3 0 0 1 4.2 5l-.6 3a2.6 2.6 0 0 1-4.6 1.1L15 15.5H9l-1.5 1.6A2.6 2.6 0 0 1 2.9 16l-.6-3a4.3 4.3 0 0 1 4.2-5z"/><path d="M7.5 10.6v3.4M5.8 12.3h3.4"/><path d="M15.8 11.4v.1M18 13.2v.1"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="M8.5 7 3.5 12l5 5M15.5 7l5 5-5 5"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5.5M6.5 11 12 5.5 17.5 11"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M9 14.5 4 9.5l5-5"/><path d="M4 9.5h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4M6 6l2.6 2.6M15.4 15.4 18 18M18 6l-2.6 2.6M8.6 15.4 6 18"/></symbol>
+  </svg>
+
   <div class="stage" id="stage">
+    <div class="ambient" aria-hidden="true"></div>
+
     <!-- ===== The ORIGINAL mouse-first app. Its markup is identical in both modes. ===== -->
     <div id="app" class="app">
       <header class="topbar" data-dpad-group>
-        <div class="brand"><span class="brand-mark" aria-hidden="true">✺</span> Saffron Kitchen</div>
+        <div class="brand">
+          <svg class="brand-mark" aria-hidden="true"><use href="#i-saffron"/></svg>
+          <div>
+            <div class="brand-name"><span>Saffron</span> Kitchen</div>
+            <div class="brand-tag">Your TV recipe collection</div>
+          </div>
+        </div>
         <nav class="menu" aria-label="Main">
-          <a href="#home" class="menu-link is-current" data-section="Home">Home</a>
-          <a href="#recipes" class="menu-link" data-section="Recipes">Recipes</a>
-          <a href="#favorites" class="menu-link" data-section="Favorites">Favorites</a>
-          <a href="#settings" class="menu-link" data-section="Settings">Settings</a>
+          <a href="#home" class="menu-link is-current" data-view="all"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Home</a>
+          <a href="#favorites" class="menu-link" data-view="favorites"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>Favorites</a>
+          <a href="#shopping-list" class="menu-link" data-view="list"><svg class="ic" aria-hidden="true"><use href="#i-basket"/></svg>Shopping list</a>
         </nav>
         <label class="search">
+          <svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>
           <span class="sr-only">Search recipes</span>
           <input id="search" type="search" placeholder="Search recipes…" autocomplete="off">
         </label>
         <button id="dpad-toggle" class="toggle" type="button" role="switch" aria-checked="false" data-dpad-ignore>
+          <svg class="ic" aria-hidden="true"><use href="#i-remote"/></svg>
           <span class="toggle-label">DPadBridge</span>
           <span class="toggle-track"><span class="toggle-thumb"></span></span>
           <span class="toggle-state" id="toggle-state">OFF</span>
@@ -32,8 +79,11 @@
 
       <main class="content">
         <section class="picks" aria-labelledby="picks-title">
-          <div class="section-head">
-            <h1 id="picks-title"><span id="section-name">Home</span> · Tonight's picks</h1>
+          <div class="hero">
+            <div>
+              <h1 id="picks-title">What’s cooking <em>tonight?</em></h1>
+              <p class="lede"><span id="section-name">Tonight’s picks</span> · simple, delicious meals for every night.</p>
+            </div>
             <div class="chips" role="toolbar" aria-label="Filter" data-dpad-group>
               <button class="chip is-on" data-filter="all">All</button>
               <button class="chip" data-filter="quick">Under 20 min</button>
@@ -44,35 +94,63 @@
           <!-- Mouse-first cards: plain <div>s with click handlers. The only change for
                DPadBridge is the data-dpad-focusable attribute (inert without the SDK). -->
           <div class="grid" id="grid" data-dpad-group></div>
+          <p class="empty" id="empty" hidden></p>
         </section>
 
-        <aside class="list-panel" aria-labelledby="list-title" data-dpad-group>
-          <h2 id="list-title">Shopping list <span class="count" id="list-count"></span></h2>
+        <aside class="list-panel" id="shopping-list" aria-labelledby="list-title" data-dpad-group>
+          <h2 id="list-title"><svg class="ic" aria-hidden="true"><use href="#i-basket"/></svg>Shopping list <span class="count" id="list-count"></span></h2>
           <ul class="list" id="list"></ul>
         </aside>
       </main>
     </div>
 
     <dialog id="recipe-dialog" class="dialog" aria-labelledby="dialog-title">
-      <div class="dialog-art" id="dialog-art" aria-hidden="true"></div>
+      <div class="dialog-art" id="dialog-art"><img id="dialog-photo" alt=""></div>
       <div class="dialog-body">
+        <button id="fav-button" class="fav-toggle" type="button" aria-pressed="false" aria-label="Add to favorites" title="Add to favorites">
+          <svg class="ic ic-off" aria-hidden="true"><use href="#i-heart"/></svg>
+          <svg class="ic ic-on" aria-hidden="true"><use href="#i-heart-fill"/></svg>
+        </button>
         <h2 id="dialog-title">Recipe</h2>
-        <p id="dialog-meta" class="meta"></p>
-        <p id="dialog-desc"></p>
+        <div class="dialog-meta" id="dialog-meta"></div>
+        <p id="dialog-desc" class="dialog-desc"></p>
+        <h3 class="eyebrow">Ingredients</h3>
+        <ul class="ingredients" id="dialog-ingredients"></ul>
         <div class="dialog-actions">
-          <button id="start-cooking" class="primary" type="button">▶ Start cooking</button>
-          <button id="fav-button" type="button" aria-pressed="false">♡ Add to favorites</button>
-          <button id="close-dialog" type="button" data-dpad-close>Close</button>
+          <button id="start-cooking" class="btn primary" type="button" autofocus><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg>Start cooking</button>
+          <button id="add-to-list" class="btn" type="button"><svg class="ic" aria-hidden="true"><use href="#i-basket"/></svg><span>Add to shopping list</span></button>
+          <button id="close-dialog" class="btn ghost" type="button" data-dpad-close><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg>Close</button>
         </div>
-        <p class="started">“Start cooking” activations: <strong id="start-count">0</strong></p>
+        <p class="dialog-foot">
+          <span>Cooking sessions started: <strong id="start-count">0</strong></span>
+          <span id="list-feedback" class="list-feedback" aria-live="polite"></span>
+        </p>
       </div>
     </dialog>
 
-    <!-- ===== Demo chrome: status + hints (not part of the app) ===== -->
-    <footer class="statusbar" aria-live="polite">
-      <div class="mode" id="mode-badge">BEFORE · mouse-first original</div>
-      <div class="hints" id="hints">Arrow keys do nothing yet. The recipe cards are plain &lt;div&gt;s with click handlers: no keyboard or remote access.</div>
-      <div class="log" id="log"></div>
+    <!-- ===== Demo chrome: mode, key hints, live SDK events (not part of the app) ===== -->
+    <footer class="statusbar">
+      <div class="mode" id="mode-badge">
+        <svg class="ic" aria-hidden="true"><use id="mode-icon" href="#i-mouse"/></svg>
+        <span class="mode-text"><strong id="mode-title">BEFORE · DPadBridge OFF</strong><small id="mode-text">Mouse only — DPadBridge not mounted</small></span>
+      </div>
+      <div class="hints" id="hints"></div>
+      <div class="log" id="log" aria-live="polite"></div>
+      <details class="devview" id="devview">
+        <summary><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg>Developer view</summary>
+        <div class="devpanel">
+          <h4>The whole integration</h4>
+          <pre><code>const bridge = DPadBridge.createDPadBridge({
+  root: document.getElementById('stage'),
+  observe: true, // cards appear/disappear with filters
+}).mount();
+
+// Toggle off: removes every listener, class and attribute.
+bridge.destroy();</code></pre>
+          <h4>Live SDK events <span class="muted" id="event-state">(not mounted)</span></h4>
+          <ol class="events" id="event-list"></ol>
+        </div>
+      </details>
     </footer>
   </div>
 
@@ -80,7 +158,7 @@
   <script src="app.js"></script>
   <!-- 2. DPadBridge: a single offline file, no build step, no framework. -->
   <script src="../../dist/dpad-bridge.js"></script>
-  <!-- 3. The integration: about 30 lines, behind a real on/off toggle. -->
+  <!-- 3. The integration: a few lines, behind a real on/off toggle. -->
   <script src="integration.js"></script>
 </body>
 </html>

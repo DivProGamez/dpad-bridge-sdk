@@ -1,4 +1,4 @@
-import { isDirection, nearestCandidate, perpendicularOverlap, pickNext, toRect } from './geometry.js';
+import { isBeyond, isDirection, nearestCandidate, perpendicularOverlap, pickNext, toRect } from './geometry.js';
 import {
   DEFAULT_SELECTORS,
   arrowOwnership,
@@ -248,6 +248,11 @@ export function createDPadBridge(options = {}) {
     return g && scopeRoot.contains(g) ? g : null;
   }
 
+  function panelAhead(from, panel, direction) {
+    const r = toRect(panel.getBoundingClientRect());
+    return isBeyond(from, r, direction) && perpendicularOverlap(from, r, direction) > 0;
+  }
+
   function resolveElement(ref) {
     if (!ref) return null;
     if (typeof ref === 'string') {
@@ -470,6 +475,11 @@ export function createDPadBridge(options = {}) {
         ? cands.filter((c) => c.group !== group && perpendicularOverlap(from, c.rect, direction) > 0)
         : cands;
       next = pickNext(from, pool, direction);
+      // Still nothing: allow another panel that as a whole lies in this direction
+      // and lines up with the source (e.g. a filtered grid whose only card is offset).
+      if (!next && group) {
+        next = pickNext(from, cands.filter((c) => c.group && c.group !== group && panelAhead(from, c.group, direction)), direction);
+      }
       if (next && opts.rememberGroupFocus && next.group && next.group !== group) {
         const remembered = groupMemory.get(next.group);
         if (remembered && remembered !== current && isTarget(remembered) && container.contains(remembered)) {

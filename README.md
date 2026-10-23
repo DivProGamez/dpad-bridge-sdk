@@ -13,12 +13,14 @@ Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and d
 </script>
 ```
 
-| Before (mouse-first original) | After (same DOM, DPadBridge on) |
+| Before: mouse only, SDK not mounted | After: same DOM, DPadBridge mounted |
 | --- | --- |
-| ![Before: no focus, arrows do nothing](docs/screenshots/1-before.png) | ![After: the focused card has a bright outline](docs/screenshots/2-after-focus.png) |
-| ![Dialog opened with OK; focus is inside it](docs/screenshots/3-after-dialog.png) | ![Long list scrolled to the focused row](docs/screenshots/4-after-list-scroll.png) |
+| ![Before: no focus, arrow keys do nothing](docs/screenshots/1080p-1-home-before.jpg) | ![After: the focused recipe card has a saffron outline and glow](docs/screenshots/1080p-2-home-after.jpg) |
+| ![Recipe dialog opened with OK; focus is contained inside it](docs/screenshots/1080p-3-dialog-after.jpg) | ![Back closed the dialog, focus returned to the card; developer view lists live SDK events](docs/screenshots/1080p-4-restored-devview.jpg) |
 
-<sub>Real screenshots of `examples/tv-demo`, captured with headless Chromium by `npm run screenshots`.</sub>
+![1280x720: a long shopping list scrolled to the focused row](docs/screenshots/720p-5-list-scroll.jpg)
+
+<sub>Real screenshots of the running `examples/tv-demo` at 1920×1080 and 1280×720, captured with headless Chromium by `npm run screenshots`.</sub>
 
 ---
 
@@ -28,7 +30,7 @@ Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and d
 | --- | --- |
 | **Finds navigable targets** | Buttons, links with `href`, form controls, `summary`, `[tabindex]` and anything marked `data-dpad-focusable`. Skips disabled (including inside `fieldset[disabled]` and `aria-disabled`), `hidden`, `inert`, `aria-hidden`, `display:none`, `visibility:hidden` and zero-size elements. |
 | **Spatial D-pad navigation** | Scores candidates from real `getBoundingClientRect()` boxes: direction filter, edge gap, perpendicular gap, alignment, then deterministic tie-breaks. See [ARCHITECTURE](docs/ARCHITECTURE.md). |
-| **No diagonal panel hopping** | `data-dpad-group` panels keep focus inside the panel while a target exists in that direction. Focus leaves a panel only to a target that lines up with it, and returns to the last-focused item when you come back. |
+| **No diagonal panel hopping** | `data-dpad-group` panels keep focus inside the panel while a target exists in that direction. Focus leaves a panel only to a target (or a whole panel) that lines up with it, and returns to the last-focused item when you come back. |
 | **One real focus** | Exactly one element gets the `dpad-focus` class **and** real DOM focus (`element.focus()`), so screen readers, `:focus` and Tab order still work. Tab and mouse focus are adopted. |
 | **OK / Enter** | Activates through the element's own `click()` (links navigate, buttons submit, checkboxes toggle, `<div onclick>` fires), exactly once. Native Enter activation is suppressed, held Enter does not repeat, and keyboard + gamepad presses within a short window are de-duplicated. |
 | **Back** | `onBack` callback first. Otherwise it closes the open modal. If nothing handles it, the key is **not** prevented, so the platform's own Back (exit or history) still works. |
@@ -153,17 +155,17 @@ npm run demo
 # open http://localhost:8080/examples/tv-demo/
 ```
 
-- **`examples/tv-demo/`**: "Saffron Kitchen", an original mouse-first app with a menu, search box, filter chips, six `<div onclick>` recipe cards, a `<dialog>` and a 30-item scrollable shopping list. The **DPadBridge switch** in the header (or `?dpad=on`, or the `d` key) mounts or destroys the SDK on the **same DOM**:
-  - *Before:* arrows and Enter do nothing, and Tab never reaches the cards.
-  - *After:* move with the arrows, open a recipe with Enter, try to escape the dialog (you can't), close it with Esc/Back (focus returns to the card), scroll the list, and type in the search box. The status bar logs every SDK event, and the dialog counts "Start cooking" activations, so one press = one activation is visible.
-  - `app.js` is the untouched original app. `integration.js` holds the entire integration, about 30 lines.
+- **`examples/tv-demo/`**: "Saffron Kitchen", an original, mouse-first recipe app styled as a cinematic 16:9 TV screen. It has a menu (Home, Favorites, Shopping list), a search box, filter chips, six photo recipe cards built as `<div onclick>`, a `<dialog>` with ingredients, and a scrollable shopping list that starts with 30 items. The **DPadBridge switch** in the header (or `?dpad=on`, or the `d` key) mounts or destroys the SDK on the **same DOM**:
+  - *Before:* only the mouse works. Arrows and Enter do nothing, and Tab never reaches the cards.
+  - *After:* move with the arrows and open a recipe with Enter. Focus is contained in the dialog, and Esc/Back closes it and returns focus to the card. In the dialog, "Add to shopping list" really adds the missing ingredients, the heart button saves a favorite, and "Start cooking" counts activations. You can also scroll the list, type in the search box, or filter. The status bar shows the mode and the latest SDK event. The **Developer view** drawer shows the real integration code and the last six SDK events.
+  - Everything is local: CSS, an inline SVG icon set and bundled JPEG photos (see `examples/tv-demo/assets/photos/CREDITS.md`). There are no remote fonts, images or CDNs, and it also works from `file://`. `app.js` is the original app and knows nothing about the SDK. `integration.js` holds the entire integration.
 - **`examples/minimal/`**: the quick start on a tiny page. Open `index.html` straight from disk; no server needed.
 
 ## Testing
 
 ```bash
-npm test          # 83 unit tests (node:test + jsdom), then checks dist/ matches src/
-npm run test:e2e  # 12 browser tests in headless Chromium via Playwright
+npm test          # 84 unit tests (node:test + jsdom), then checks dist/ matches src/
+npm run test:e2e  # 17 browser tests in headless Chromium via Playwright
 ```
 
 - **Unit tests** (`test/*.test.js`) cover:
@@ -178,7 +180,7 @@ npm run test:e2e  # 12 browser tests in headless Chromium via Playwright
   - text-input safety
   - gamepad normalisation and the repeat poller, with mocked `Gamepad` objects
   - `destroy()` leaving zero listeners
-- **End-to-end tests** (`test/e2e/demo.spec.js`) drive the real demo in headless Chromium 141: before vs after, real-layout navigation, dialog open/contain/close/restore, one activation per Enter, list scrolling, search typing, filter-driven DOM changes, teardown, reduced motion, and the minimal page over `file://`.
+- **End-to-end tests** (`test/e2e/demo.spec.js`) drive the real demo in headless Chromium 141: before vs after, real-layout navigation, dialog open/contain/close/restore, one activation per Enter, list scrolling, search typing, filter-driven DOM changes, Add to shopping list, favorites, the developer view, a mocked Gamepad API driving the real poller, teardown, reduced motion, and the minimal page over `file://`.
 - **Not tested:** physical Fire TV / Android TV devices and real gamepads. Gamepad support is verified only against mocked Gamepad API objects, and remote keys only as synthesized `keydown` events.
 
 CI (`.github/workflows/ci.yml`) is configured to run both suites on every push and pull request.
