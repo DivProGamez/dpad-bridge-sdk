@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Test and tool output
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+coverage/
+*.log
+
+# Secrets and credentials: never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.mobileprovision
+credentials*.json
+secrets*.json
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

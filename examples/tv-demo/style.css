@@ -1,0 +1,161 @@
+/* Saffron Kitchen: dark, 16:9, TV-legible. Sizes scale with the stage width
+   (1 --u = 1px at a 1280x720 stage) so it looks the same at 720p and 4K. */
+:root {
+  --u: calc(min(100vw, 177.78vh) / 1280);
+  --bg: #0b0d12;
+  --panel: #151922;
+  --panel-2: #1c2230;
+  --line: #2a3142;
+  --text: #f4f1ea;
+  --muted: #a9b0c0;
+  --accent: #ffb547;
+  --dpad-focus-color: #ffd60a;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: #000;
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, sans-serif;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.stage {
+  width: min(100vw, 177.78vh);
+  height: min(56.25vw, 100vh);
+  background: radial-gradient(120% 90% at 0% 0%, #1a1420 0%, var(--bg) 55%);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  font-size: calc(18 * var(--u));
+  position: relative;
+  overflow: hidden;
+}
+
+.app { display: grid; grid-template-rows: auto 1fr; min-height: 0; padding: calc(24 * var(--u)) calc(40 * var(--u)) 0; gap: calc(18 * var(--u)); }
+
+/* --- top bar */
+.topbar { display: flex; align-items: center; gap: calc(24 * var(--u)); }
+.brand { font-weight: 800; font-size: calc(26 * var(--u)); letter-spacing: .01em; white-space: nowrap; }
+.brand-mark { color: var(--accent); }
+.menu { display: flex; gap: calc(6 * var(--u)); }
+.menu-link {
+  color: var(--muted); text-decoration: none; font-weight: 600;
+  padding: calc(8 * var(--u)) calc(16 * var(--u)); border-radius: calc(999 * var(--u));
+}
+.menu-link:hover, .menu-link.is-current { color: var(--text); background: var(--panel-2); }
+.search { margin-left: auto; }
+.search input {
+  width: calc(260 * var(--u)); font: inherit; color: var(--text);
+  background: var(--panel); border: 1px solid var(--line); border-radius: calc(10 * var(--u));
+  padding: calc(9 * var(--u)) calc(14 * var(--u));
+}
+.toggle {
+  display: inline-flex; align-items: center; gap: calc(10 * var(--u));
+  font: inherit; font-size: calc(15 * var(--u)); font-weight: 700; color: var(--text);
+  background: #262033; border: 1px dashed #6b5a8e; border-radius: calc(12 * var(--u));
+  padding: calc(8 * var(--u)) calc(14 * var(--u)); cursor: pointer;
+}
+.toggle-track { width: calc(42 * var(--u)); height: calc(24 * var(--u)); border-radius: 99px; background: #3a3f4d; position: relative; }
+.toggle-thumb { position: absolute; top: 12%; left: 8%; width: 38%; height: 76%; border-radius: 50%; background: #c9cdd6; transition: left .15s; }
+.toggle[aria-checked="true"] .toggle-track { background: #2f9e6b; }
+.toggle[aria-checked="true"] .toggle-thumb { left: 54%; background: #fff; }
+.toggle-state { min-width: 2.4em; }
+
+/* --- content */
+.content { display: grid; grid-template-columns: 1fr calc(330 * var(--u)); gap: calc(28 * var(--u)); min-height: 0; }
+.picks { display: grid; grid-template-rows: auto 1fr; gap: calc(14 * var(--u)); min-height: 0; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: calc(16 * var(--u)); }
+h1 { font-size: calc(24 * var(--u)); margin: 0; }
+h2 { font-size: calc(21 * var(--u)); margin: 0 0 calc(12 * var(--u)); }
+.chips { display: flex; gap: calc(8 * var(--u)); }
+.chip {
+  font: inherit; font-size: calc(15 * var(--u)); color: var(--muted); cursor: pointer;
+  background: transparent; border: 1px solid var(--line); border-radius: 99px;
+  padding: calc(6 * var(--u)) calc(14 * var(--u));
+}
+.chip.is-on { color: #1a1206; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+.grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: calc(196 * var(--u));
+  gap: calc(20 * var(--u)); align-content: start; padding: calc(10 * var(--u)); margin: calc(-10 * var(--u));
+}
+.card {
+  --hue: 30;
+  display: grid; grid-template-rows: 1fr auto; overflow: hidden; cursor: pointer;
+  border-radius: calc(16 * var(--u)); background: var(--panel); border: 1px solid var(--line);
+}
+.card:hover { border-color: #5a6378; }
+.card-art {
+  display: grid; place-items: center; font-size: calc(64 * var(--u));
+  background: linear-gradient(135deg, hsl(var(--hue) 70% 32%), hsl(calc(var(--hue) + 40) 60% 18%));
+}
+.card-text { padding: calc(12 * var(--u)) calc(16 * var(--u)); }
+.card-title { font-weight: 700; font-size: calc(19 * var(--u)); }
+.card-meta { color: var(--muted); font-size: calc(15 * var(--u)); margin-top: calc(2 * var(--u)); }
+
+/* Focus emphasis for cards (DPadBridge injects the bright outline itself). */
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: transform .14s ease-out; }
+  .card.dpad-focus { transform: scale(1.035); }
+}
+.card.dpad-focus { border-color: transparent; }
+
+/* --- shopping list (long, scrolls inside its panel) */
+.list-panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: calc(16 * var(--u));
+  padding: calc(16 * var(--u)) calc(14 * var(--u)) calc(8 * var(--u)); display: grid; grid-template-rows: auto 1fr; min-height: 0;
+}
+.count { color: var(--muted); font-weight: 500; font-size: calc(15 * var(--u)); }
+.list { list-style: none; margin: 0; padding: calc(6 * var(--u)) calc(6 * var(--u)) calc(10 * var(--u)); overflow-y: auto; min-height: 0; }
+.list li { margin-bottom: calc(6 * var(--u)); }
+.list label { display: flex; align-items: center; gap: calc(12 * var(--u)); padding: calc(7 * var(--u)) calc(10 * var(--u)); border-radius: calc(8 * var(--u)); background: var(--panel-2); cursor: pointer; }
+.list input { width: calc(20 * var(--u)); height: calc(20 * var(--u)); accent-color: var(--accent); margin: 0; }
+.list input:checked + span { color: var(--muted); text-decoration: line-through; }
+/* Apps can style around the focused control: highlight the whole row. */
+.list label:has(input.dpad-focus) { background: #2b3242; box-shadow: inset 0 0 0 2px var(--dpad-focus-color); }
+
+/* --- dialog */
+.dialog {
+  --hue: 30;
+  width: calc(880 * var(--u)); max-width: 94vw; padding: 0; border: 1px solid var(--line);
+  border-radius: calc(20 * var(--u)); background: var(--panel); color: var(--text);
+  display: none; grid-template-columns: calc(220 * var(--u)) 1fr; overflow: hidden;
+  font-size: calc(18 * var(--u));
+}
+.dialog[open] { display: grid; }
+.dialog::backdrop { background: rgba(4, 6, 10, .72); }
+.dialog-art {
+  display: grid; place-items: center; font-size: calc(110 * var(--u));
+  background: linear-gradient(160deg, hsl(var(--hue) 70% 34%), hsl(calc(var(--hue) + 40) 60% 16%));
+}
+.dialog-body { padding: calc(26 * var(--u)) calc(30 * var(--u)); }
+.dialog-body h2 { font-size: calc(30 * var(--u)); margin-bottom: calc(4 * var(--u)); }
+.meta { color: var(--accent); margin: 0 0 calc(12 * var(--u)); font-weight: 600; }
+.dialog-actions { display: flex; gap: calc(12 * var(--u)); margin: calc(22 * var(--u)) 0 calc(14 * var(--u)); flex-wrap: wrap; }
+.dialog-actions button {
+  font: inherit; font-weight: 700; color: var(--text); cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: calc(10 * var(--u));
+  padding: calc(10 * var(--u)) calc(18 * var(--u));
+}
+.dialog-actions .primary { background: var(--accent); color: #1a1206; border-color: var(--accent); }
+.started { color: var(--muted); font-size: calc(15 * var(--u)); margin: 0; }
+
+/* --- status bar */
+.statusbar {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: calc(20 * var(--u));
+  padding: calc(12 * var(--u)) calc(40 * var(--u)); background: #07080c; border-top: 1px solid var(--line);
+  font-size: calc(15 * var(--u)); min-height: calc(56 * var(--u));
+}
+.mode { font-weight: 800; letter-spacing: .04em; padding: calc(5 * var(--u)) calc(12 * var(--u)); border-radius: 99px; background: #3a2a2a; color: #ffb3a7; white-space: nowrap; }
+.dpad-on .mode { background: #183a2a; color: #8ff0bf; }
+.hints { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hints kbd {
+  display: inline-block; min-width: 1.6em; text-align: center; font: inherit; font-weight: 700; color: var(--text);
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 .3em; margin-right: .15em; background: var(--panel-2);
+}
+.log { color: var(--accent); font-weight: 600; text-align: right; max-width: calc(380 * var(--u)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

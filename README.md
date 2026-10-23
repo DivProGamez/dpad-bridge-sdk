@@ -1,129 +1,198 @@
-# DPADBRIDGE SDK — COMPLETE CLAUDE CODE CLOUD TASK
+# DPadBridge SDK
 
-## Mission and deadline
+**Make ordinary DOM web interfaces navigable with a TV remote and a gamepad, without rebuilding the UI.**
 
-Build and publish a genuine, independent, MIT-licensed open-source developer tool for the **Open Source Mini Challenge** of the **Amazon Developer Hackathon 2026**. The submission deadline is **October 23, 2026 at 12:00 PM PDT (19:00 Morocco time)**. Complete a working, tested, publicly accessible contribution before the deadline; do not spend time writing plans instead of code.
+Many small HTML5 apps were built for a mouse: `<div onclick>` cards, menus and dialogs that a TV remote cannot reach. DPadBridge adds a predictable spatial focus model on top of the DOM you already have. It handles Up/Down/Left/Right, OK and Back, scrolls to keep the focused element visible, and contains and restores focus around modals. It is plain JavaScript with no framework, no build step and no network access, MIT licensed.
 
-This is an **additional open-source contribution**, not a third Primary Track submission. It must be separate and materially different from the two already submitted primary-track projects.
+```html
+<script src="dist/dpad-bridge.js"></script>
+<script>
+  DPadBridge.createDPadBridge({
+    root: document.querySelector('#app'),
+  }).mount();
+</script>
+```
 
-## Important existing context — do not repeat work
+| Before (mouse-first original) | After (same DOM, DPadBridge on) |
+| --- | --- |
+| ![Before: no focus, arrows do nothing](docs/screenshots/1-before.png) | ![After: the focused card has a bright outline](docs/screenshots/2-after-focus.png) |
+| ![Dialog opened with OK; focus is inside it](docs/screenshots/3-after-dialog.png) | ![Long list scrolled to the focused row](docs/screenshots/4-after-list-scroll.png) |
 
-The entrant is an independent developer using GitHub username **DivProGamez**. Two primary projects are already submitted on Devpost:
+<sub>Real screenshots of `examples/tv-demo`, captured with headless Chromium by `npm run screenshots`.</sub>
 
-- **PlanB Orchestra** — Alexa+ simulated household planning / replanning, repository `https://github.com/DivProGamez/planb-orchestra`, updated Phase 2 narrated demo `https://youtu.be/5cm49jP8_sw`.
-- **PressPath TV** — Fire TV track, a family TV app that measures and adapts its own D-pad navigation, repository `https://github.com/DivProGamez/presspath-tv`, narrated demo `https://youtu.be/bzkkslQzQPY`.
+---
 
-Do not edit either project, their Devpost submissions, videos, releases, Git branches, APKs, or existing files. Do not merely extract / copy their code into a new repository. Their existence is background context only.
+## What it does
 
-## Your ONLY repository and product
+| Capability | How |
+| --- | --- |
+| **Finds navigable targets** | Buttons, links with `href`, form controls, `summary`, `[tabindex]` and anything marked `data-dpad-focusable`. Skips disabled (including inside `fieldset[disabled]` and `aria-disabled`), `hidden`, `inert`, `aria-hidden`, `display:none`, `visibility:hidden` and zero-size elements. |
+| **Spatial D-pad navigation** | Scores candidates from real `getBoundingClientRect()` boxes: direction filter, edge gap, perpendicular gap, alignment, then deterministic tie-breaks. See [ARCHITECTURE](docs/ARCHITECTURE.md). |
+| **No diagonal panel hopping** | `data-dpad-group` panels keep focus inside the panel while a target exists in that direction. Focus leaves a panel only to a target that lines up with it, and returns to the last-focused item when you come back. |
+| **One real focus** | Exactly one element gets the `dpad-focus` class **and** real DOM focus (`element.focus()`), so screen readers, `:focus` and Tab order still work. Tab and mouse focus are adopted. |
+| **OK / Enter** | Activates through the element's own `click()` (links navigate, buttons submit, checkboxes toggle, `<div onclick>` fires), exactly once. Native Enter activation is suppressed, held Enter does not repeat, and keyboard + gamepad presses within a short window are de-duplicated. |
+| **Back** | `onBack` callback first. Otherwise it closes the open modal. If nothing handles it, the key is **not** prevented, so the platform's own Back (exit or history) still works. |
+| **Modals** | Detects `dialog[open]`, `[aria-modal="true"]` and `[data-dpad-modal]`. Moves focus inside, keeps arrows and Tab inside, and restores focus to the opener (or to `data-dpad-restore`) on close. |
+| **Focus-aware scrolling** | Reveals the focused element inside every scrollable ancestor, with a margin. Smooth scrolling, or instant under `prefers-reduced-motion`. `nearest` or `center` mode. |
+| **Typing is safe** | Letters, Space, Backspace and Enter in text fields go to the field. Left/Right leave a text input only from the caret edge. Up/Down change a number input, Left/Right adjust a range. |
+| **Gamepad** | Gamepad API standard mapping: D-pad or left stick moves, A = OK, B = Back. Presses are edge-detected and held directions auto-repeat. The poll loop runs only while a pad is connected, and the SDK does nothing if the API is missing. |
+| **Dynamic DOM** | Call `.refresh()`, or pass `observe: true` for a batched MutationObserver that ignores the SDK's own writes. |
+| **Clean teardown** | `.destroy()` removes every listener, the observer, the animation-frame loop, the injected stylesheet, the focus class and any `tabindex` it added. |
 
-The selected and authorized cloud repository is:
+### Not in scope (honest limitations)
 
-`https://github.com/DivProGamez/dpad-bridge-sdk`
+- **No canvas/WebGL conversion.** Only DOM elements can be focused. A game drawn on a `<canvas>` needs its own input code.
+- **Your own page only.** It does not affect other apps, browser chrome or Fire TV / Android TV system UI, and it never remaps OS keys. Media and voice/microphone keys are not in the keymap and pass through untouched.
+- **Virtualized lists.** Elements that are not in the DOM cannot be focused. Use the `boundary` event to load more, then `.refresh()`.
+- **Key codes differ per platform.** Arrows/Enter/Escape, `GoBack`/`BrowserBack`, webOS `461` and Tizen `10009` are mapped by default. Override with `keymap`. Not verified on physical TV hardware (see [Testing](#testing)).
+- **Textarea.** Arrows edit text. Focus leaves only from the very start (Up/Left) or the very end (Down/Right).
 
-It may initially contain only README and MIT LICENSE. Work only in this repository's cloned cloud workspace, on a new feature branch/PR. You are not authorized to scan the user's computer or access other local repos or personal files. Standard dependency downloads allowed as needed. Never commit secrets.
+## Install
 
-**Product:** DPadBridge SDK — Make ordinary DOM-based web interfaces navigable with a TV remote and gamepad, without rebuilding their UI from scratch.
+DPadBridge is not on the npm registry yet. Use one of:
 
-**Value:** many simple HTML5 apps are mouse-first. DPadBridge adds an accessible, predictable focus graph and input adapter to ordinary focusable DOM elements, with clearly visible focus, Back semantics, focus-aware scrolling and modal focus management. This is a developer SDK; it DOES NOT magically convert canvas/WebGL games, work across third-party apps, or modify Fire TV OS controls.
+```bash
+# from GitHub
+npm install github:DivProGamez/dpad-bridge-sdk
+```
 
-## Genuine core features to IMPLEMENT (not merely describe)
+```js
+import { createDPadBridge } from 'dpad-bridge-sdk';
+```
 
-### 1. Reusable library
+Or copy **`dist/dpad-bridge.js`** (IIFE, exposes `window.DPadBridge`, works from `file://`) or **`dist/dpad-bridge.mjs`** (ES module) into your project. There are no runtime dependencies.
 
-- Plain JavaScript, offline runtime, no framework required.
-- Entry point such as `createDPadBridge({root, selectors, ...})`; implement `.mount()`, `.refresh()`, `.destroy()`, `.focus(element)` and useful small API if needed.
-- Locate visible/enabled interactive DOM targets: buttons, links, form controls, explicit `data-dpad-focusable` nodes. Ignore disabled, hidden, inert and non-interactive targets.
-- Spatial Up/Down/Left/Right navigation using actual DOM element rectangles; deterministic candidate scoring, direction filtering and tie-breaks. Avoid jumping diagonally across unrelated panels where closer directional targets exist.
-- Active focus indicated by a CSS class / focus-visible decoration. Only one active focus node, not just a fake glowing overlay.
-- OK / Enter activates elements using native semantics while preventing duplicate activations; Escape / Back supports documented callbacks and dialog closing. Do not hijack the OS Alexa/microphone button.
-- Focus restoration when returning from modal/screens where application markup supports it.
-- Automatically scroll focused offscreen elements into view and support long lists without mouse use.
-- Handle DOM updates via explicit `.refresh()` or an optional safe MutationObserver, without leaking listeners.
-- Handle keyboard and supported gamepad input via the Gamepad API where available; gracefully degrade if gamepad is absent. Use proper key repeat / debouncing and avoid double activation.
-- Accessibility: honor `prefers-reduced-motion`, visible high-contrast focus theme, retain meaningful keyboard tab semantics where possible, no focus traps except intentional modal containment.
-- Clean unsubscribe/destroy API; no global event listeners after destroy.
+## Quick start
 
-### 2. Truly demonstrable BEFORE / AFTER
+```html
+<div id="app">
+  <nav data-dpad-group> <a href="#home">Home</a> <a href="#shows">Shows</a> </nav>
+  <main data-dpad-group>
+    <div class="card" data-dpad-focusable onclick="play(1)">Episode 1</div>
+    <div class="card" data-dpad-focusable onclick="play(2)">Episode 2</div>
+  </main>
+</div>
 
-Create an original small **mouse-first HTML5 sample interface** with several cards, menu, modal and scrollable list. Show the exact same original controls before integration and after enabling DPadBridge. Enable/disable the SDK with a real UI toggle or separate demo routes. Demonstrate D-pad arrow movement, OK activation, Back, scrolling and modal return. Use on-screen hints and a visible focused card. Do NOT present fabricated quantitative press-reduction claims; the SDK is about adding navigation capability, not measuring the PressPath product.
+<script src="dpad-bridge.js"></script>
+<script>
+  const bridge = DPadBridge.createDPadBridge({
+    root: document.getElementById('app'),
+    observe: true,                       // auto-refresh when the DOM changes
+    onBack: (ctx) => {
+      if (ctx.modal) return false;       // let the SDK close the open dialog
+      return myRouter.back();            // return true when you handled Back
+    },
+  });
+  bridge.mount();
+</script>
+```
 
-### 3. Documentation and developer onboarding
+The only markup change in the example is `data-dpad-focusable` on the `<div>` cards, which the SDK gives `tabindex="0"` while it is mounted. Native buttons, links and inputs need no change.
 
-Deliver:
-- `README.md` with the problem, supported scope, accurate capabilities, installation, 5-line quick start, API reference, usage demo, screenshots if genuine, limitations, browser support and how to run tests.
-- MIT `LICENSE` at the repository root, detectable by GitHub.
-- `examples/` with working offline demos (not dead screenshots).
-- `docs/ARCHITECTURE.md` with directional scoring, event flow, and focus restoration design.
-- `docs/CONTRIBUTING.md` with tests, coding conventions and a simple example for external contributors.
-- `docs/HACKATHON_CONTRIBUTION.md` with what is genuinely new, how it works, why it matters for TV developers and what was actually tested.
-- `package.json` scripts `npm test`, `npm run demo` and, if browser tests are included, `npm run test:e2e`.
-- A secure `.gitignore` and no key files or platform credentials.
+## API
 
-### 4. Real tests
+### `createDPadBridge(options) → bridge`
 
-Write and RUN focused tests that verify:
-- Directional focus selection for grid, row, column, uneven layouts and ties.
-- Invisible/disabled element exclusion.
-- Boundary behavior and no focus loss.
-- Dynamic nodes and `.refresh()`.
-- Native activation only once, Back callback.
-- Modal focus trap/restoration behavior if implemented.
-- Scroll reveal of newly focused element.
-- Listener cleanup after destroy.
-- Input adapters do not interfere with typing into text inputs.
-- Gamepad normalization where a mock is sufficient (state explicitly whether real hardware was tested).
-- Browser end-to-end flows for an original demo when headless browser available; use Playwright or comparable tooling if supported. Do not claim browser coverage unless it actually ran.
+| Option | Default | Description |
+| --- | --- | --- |
+| `root` | `document.body` | Element, selector or document to make navigable. Modals inside it are managed. |
+| `selectors` | see `DEFAULT_SELECTORS` | Replace what counts as a target. `extraSelectors` adds to it. |
+| `focusClass` | `'dpad-focus'` | Class on the single focused element. |
+| `initialFocus` | `null` | Element or selector to focus on mount. Otherwise `[data-dpad-autofocus]`, the already-focused element, or the first target. |
+| `autoFocus` | `true` | Focus something on mount and whenever nothing is focused. |
+| `observe` | `false` | MutationObserver-based automatic `refresh()`. |
+| `gamepad` | `true` | Gamepad API support. `false` disables it. An object tunes `deadzone` and allows test injection. |
+| `keyboard` | `true` | Keyboard / remote key handling. |
+| `keymap` | `DEFAULT_KEYMAP` | `{ up, down, left, right, ok, back }` → arrays of `key` strings / `keyCode` numbers. |
+| `scrollMode` | `'nearest'` | `'nearest'`, `'center'` or `false`. |
+| `scrollMargin` | `24` | Pixels kept between the focused element and the scroll edge. |
+| `scrollBehavior` | auto | `'smooth'`, or `'auto'` when `prefers-reduced-motion: reduce`. |
+| `repeatDelay` / `repeatInterval` | `400` / `120` | Gamepad auto-repeat. The interval also throttles keyboard auto-repeat. |
+| `activationGuard` | `150` | ms within which a second OK on the same element is ignored. |
+| `rememberGroupFocus` | `true` | Re-entering a `data-dpad-group` returns to its last-focused item. |
+| `closeModalOnBack` | `true` | Back closes the top modal when `onBack` did not handle it. |
+| `modalSelector` | `dialog[open], [aria-modal="true"], [data-dpad-modal]` | What counts as an open modal. |
+| `injectStyles` | `true` | Inject the high-contrast focus theme (customize with `--dpad-focus-color`, `--dpad-focus-width`, `--dpad-focus-offset`, `--dpad-focus-halo`). |
+| `onFocus`, `onMove`, `onActivate`, `onBoundary`, `onModalOpen`, `onModalClose` | | Event callbacks (same payloads as `on()`). |
+| `onBack(ctx)` | | `ctx = { modal, focused, event, source, closeModal() }`. Return `true` if you handled it. |
 
-No fake passing tests, no invented performance numbers. If a feature fails, fix it or reduce the stated scope honestly.
+### Bridge methods
 
-### 5. Strong, competition-quality contribution
+| Method | Description |
+| --- | --- |
+| `mount()` | Attach listeners, inject styles, collect targets, focus the initial element. Returns the bridge. |
+| `refresh()` | Re-scan targets and modals after DOM changes. Re-homes focus if the focused element vanished. |
+| `destroy()` | Remove everything the SDK added. Idempotent. The bridge can be mounted again. |
+| `focus(elOrSelector)` | Focus a target (inside the open modal, if any). Returns `true` on success. |
+| `move(direction)` | Programmatic `'up' \| 'down' \| 'left' \| 'right'`. Returns `false` at a boundary. |
+| `activate()` / `back()` | Programmatic OK / Back. |
+| `on(event, fn)` | Subscribe to `focus`, `move`, `activate`, `back`, `boundary`, `modalopen` or `modalclose`. Returns an unsubscribe function. |
+| `getFocused()`, `getTargets()`, `getModal()`, `isMounted`, `root` | Introspection. |
 
-This must be more than a README or a renamed copy of the submitted PressPath code. Implement substantial original library code, meaningful edge-case tests, functioning demo, and clear developer value. Avoid unnecessary dependencies and overengineering.
+### Markup attributes
 
-Use a clean visual demo with dark TV-friendly 16:9 layout, bright focus outline, legible text. Design quality matters, but do not divert into designing 16 Stitch screens or building an APK. A reusable library is the deliverable.
+| Attribute | Effect |
+| --- | --- |
+| `data-dpad-focusable` | Make a non-interactive element (e.g. `<div onclick>`) a target. `="false"` opts an element out. |
+| `data-dpad-ignore` | Exclude this element and its subtree. |
+| `data-dpad-group` | Panel: navigation prefers staying inside, leaves only to lined-up targets, and remembers its last item. |
+| `data-dpad-up/down/left/right="#selector"` | Explicit neighbour. `="none"` blocks that direction. |
+| `data-dpad-modal` | Treat a custom element as a modal while visible. |
+| `data-dpad-close` | The button Back should click to close a modal. |
+| `data-dpad-restore="#selector"` | Where focus goes when this modal closes. |
+| `data-dpad-autofocus` | Preferred initial target (also inside modals, along with `autofocus`). |
+| `data-dpad-passthrough` | Arrows inside stay native (custom widgets, sliders, maps). |
 
-## GitHub and publishing requirements
+Lower-level pure helpers are exported for reuse and testing: `pickNext`, `scoreCandidate`, `nearestCandidate`, `toRect`, `collectTargets`, `isUsableTarget`, `arrowOwnership`, `normalizeKey`, `normalizeGamepad`, `createGamepadPoller` and `revealElement`. TypeScript declarations are in `types/index.d.ts`.
 
-- Work in the connected **dpad-bridge-sdk** repository, not either primary project.
-- Before editing, confirm repository root, status, permissions, and whether new commits can be pushed.
-- Make a real commit with a clear message, push it to a public branch, and create a PR against `main` if supported. Public GitHub contribution evidence must exist **before the deadline**.
-- A PR need not be merged to satisfy the published Open Source challenge requirements, but merging a reviewed, passing PR to `main` makes the project simpler to evaluate. Do not claim a merge without verification. If merging needs user action, surface the exact PR link and steps.
-- Ensure `https://github.com/DivProGamez/dpad-bridge-sdk` shows the MIT license, code, README and install/test instructions on the default branch when possible.
-- Save actual commit and PR URLs. Never invent links or claim repository publication if push failed.
+## Demo
 
-## Exact competition metadata to deliver
+```bash
+npm install
+npm run demo
+# open http://localhost:8080/examples/tv-demo/
+```
 
-The existing PressPath TV primary-track submission may have an Open Source Mini Challenge = Yes selection that currently references PlanB Orchestra. Do NOT assume PlanB is eligible as the additional contribution. The new standalone DPadBridge SDK is intended as the separate contribution. Do not edit Devpost yourself unless a real authenticated Devpost integration is explicitly available and authorized; cloud GitHub credentials do not grant Devpost access.
+- **`examples/tv-demo/`**: "Saffron Kitchen", an original mouse-first app with a menu, search box, filter chips, six `<div onclick>` recipe cards, a `<dialog>` and a 30-item scrollable shopping list. The **DPadBridge switch** in the header (or `?dpad=on`, or the `d` key) mounts or destroys the SDK on the **same DOM**:
+  - *Before:* arrows and Enter do nothing, and Tab never reaches the cards.
+  - *After:* move with the arrows, open a recipe with Enter, try to escape the dialog (you can't), close it with Esc/Back (focus returns to the card), scroll the list, and type in the search box. The status bar logs every SDK event, and the dialog counts "Start cooking" activations, so one press = one activation is visible.
+  - `app.js` is the untouched original app. `integration.js` holds the entire integration, about 30 lines.
+- **`examples/minimal/`**: the quick start on a tiny page. Open `index.html` straight from disk; no server needed.
 
-At the end, provide four READY-TO-PASTE Devpost fields (grounded in actual published links and working code):
+## Testing
 
-1. **Contribution URL** — precise public commit / PR / branch URL for DPadBridge.
-2. **Project repository URL** — `https://github.com/DivProGamez/dpad-bridge-sdk` (only if live).
-3. **GitHub username** — `DivProGamez`.
-4. **Description (what, how, why)** — compelling factual English paragraph describing substantive original functionality and actual tests; no claims about Fire OS device testing, gamepad hardware or browser E2E without evidence.
+```bash
+npm test          # 83 unit tests (node:test + jsdom), then checks dist/ matches src/
+npm run test:e2e  # 12 browser tests in headless Chromium via Playwright
+```
 
-Explain to the user where to edit **the existing PressPath TV Devpost Additional Info → Open Source Mini Challenge fields**, replacing any previous PlanB contribution links, and save/verify `SUBMITTED`. Do not create a third primary-track Devpost project or change either primary track. Do not assert mini-challenge eligibility is guaranteed; the organizer judges eligibility.
+- **Unit tests** (`test/*.test.js`) cover:
+  - directional scoring on grids, rows, columns, uneven layouts, ties and overlaps
+  - target exclusion rules
+  - boundaries and no focus loss
+  - `refresh()` and observer mode, including no self-triggered refresh loops
+  - single activation and key repeat
+  - Back semantics, including not trapping platform Back
+  - modal containment and restoration
+  - scroll reveal, on a jsdom geometry harness that honours scroll offsets
+  - text-input safety
+  - gamepad normalisation and the repeat poller, with mocked `Gamepad` objects
+  - `destroy()` leaving zero listeners
+- **End-to-end tests** (`test/e2e/demo.spec.js`) drive the real demo in headless Chromium 141: before vs after, real-layout navigation, dialog open/contain/close/restore, one activation per Enter, list scrolling, search typing, filter-driven DOM changes, teardown, reduced motion, and the minimal page over `file://`.
+- **Not tested:** physical Fire TV / Android TV devices and real gamepads. Gamepad support is verified only against mocked Gamepad API objects, and remote keys only as synthesized `keydown` events.
 
-## Time and execution
+CI (`.github/workflows/ci.yml`) is configured to run both suites on every push and pull request.
 
-The user has an urgent October 23 19:00 Morocco deadline and is using a Claude Code Cloud session because their local Claude weekly allowance is exhausted. This is a real implementation assignment, not a request for a proposal or an asynchronous promise.
+## Browser support
 
-Prioritize in this order:
-1. Working original SDK + example.
-2. Automated unit tests and real verified commands.
-3. README/LICENSE/hackathon contribution description.
-4. Push branch and PR, preferably merge passing work.
-5. Extra polish and E2E only if time permits.
+The code targets evergreen Chromium, Firefox and Safari, plus Chromium-based TV web runtimes. The bundle is compiled to ES2019. It uses `Element.closest`, `classList`, `getBoundingClientRect`, `MutationObserver` (only with `observe: true`), `requestAnimationFrame` and `focus({ preventScroll })`. It uses these when available and falls back otherwise: `checkVisibility()`, `select.showPicker()`, `matchMedia` and the Gamepad API. Automated runs cover headless Chromium (Playwright) and jsdom only.
 
-If the browser tooling is unavailable, do not block publishing a proven useful library: document the limitation and supply manually reproducible steps. If a short partial scope is required, ship a correct small SDK rather than a fake complete one.
+## Project docs
 
-Final report MUST include:
-- Public repository, commit and PR URLs (verified).
-- Exact tests run and pass/fail counts.
-- How to run demo and install package.
-- Clear supported vs unsupported scope.
-- Final four Devpost field values.
-- Exact user-only remaining steps, including merging if needed and Devpost update.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): scoring, event flow, focus restoration
+- [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md): setup, conventions, adding a test
+- [docs/HACKATHON_CONTRIBUTION.md](docs/HACKATHON_CONTRIBUTION.md): what is new and what was tested
 
-**START IMPLEMENTING IMMEDIATELY. DO NOT SEARCH OTHER REPOSITORIES OR REWRITE EITHER SUBMITTED PROJECT.**
+## License
+
+[MIT](LICENSE) © 2026 DivProGamez

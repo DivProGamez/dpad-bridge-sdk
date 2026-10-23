@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saffron Kitchen: DPadBridge before/after demo</title>
+  <meta name="description" content="A mouse-first HTML5 TV-style app shown before and after adding DPadBridge SDK.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="stage" id="stage">
+    <!-- ===== The ORIGINAL mouse-first app. Its markup is identical in both modes. ===== -->
+    <div id="app" class="app">
+      <header class="topbar" data-dpad-group>
+        <div class="brand"><span class="brand-mark" aria-hidden="true">✺</span> Saffron Kitchen</div>
+        <nav class="menu" aria-label="Main">
+          <a href="#home" class="menu-link is-current" data-section="Home">Home</a>
+          <a href="#recipes" class="menu-link" data-section="Recipes">Recipes</a>
+          <a href="#favorites" class="menu-link" data-section="Favorites">Favorites</a>
+          <a href="#settings" class="menu-link" data-section="Settings">Settings</a>
+        </nav>
+        <label class="search">
+          <span class="sr-only">Search recipes</span>
+          <input id="search" type="search" placeholder="Search recipes…" autocomplete="off">
+        </label>
+        <button id="dpad-toggle" class="toggle" type="button" role="switch" aria-checked="false" data-dpad-ignore>
+          <span class="toggle-label">DPadBridge</span>
+          <span class="toggle-track"><span class="toggle-thumb"></span></span>
+          <span class="toggle-state" id="toggle-state">OFF</span>
+        </button>
+      </header>
+
+      <main class="content">
+        <section class="picks" aria-labelledby="picks-title">
+          <div class="section-head">
+            <h1 id="picks-title"><span id="section-name">Home</span> · Tonight's picks</h1>
+            <div class="chips" role="toolbar" aria-label="Filter" data-dpad-group>
+              <button class="chip is-on" data-filter="all">All</button>
+              <button class="chip" data-filter="quick">Under 20 min</button>
+              <button class="chip" data-filter="veg">Vegetarian</button>
+              <button class="chip" data-filter="sweet">Dessert</button>
+            </div>
+          </div>
+          <!-- Mouse-first cards: plain <div>s with click handlers. The only change for
+               DPadBridge is the data-dpad-focusable attribute (inert without the SDK). -->
+          <div class="grid" id="grid" data-dpad-group></div>
+        </section>
+
+        <aside class="list-panel" aria-labelledby="list-title" data-dpad-group>
+          <h2 id="list-title">Shopping list <span class="count" id="list-count"></span></h2>
+          <ul class="list" id="list"></ul>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="recipe-dialog" class="dialog" aria-labelledby="dialog-title">
+      <div class="dialog-art" id="dialog-art" aria-hidden="true"></div>
+      <div class="dialog-body">
+        <h2 id="dialog-title">Recipe</h2>
+        <p id="dialog-meta" class="meta"></p>
+        <p id="dialog-desc"></p>
+        <div class="dialog-actions">
+          <button id="start-cooking" class="primary" type="button">▶ Start cooking</button>
+          <button id="fav-button" type="button" aria-pressed="false">♡ Add to favorites</button>
+          <button id="close-dialog" type="button" data-dpad-close>Close</button>
+        </div>
+        <p class="started">“Start cooking” activations: <strong id="start-count">0</strong></p>
+      </div>
+    </dialog>
+
+    <!-- ===== Demo chrome: status + hints (not part of the app) ===== -->
+    <footer class="statusbar" aria-live="polite">
+      <div class="mode" id="mode-badge">BEFORE · mouse-first original</div>
+      <div class="hints" id="hints">Arrow keys do nothing yet. The recipe cards are plain &lt;div&gt;s with click handlers: no keyboard or remote access.</div>
+      <div class="log" id="log"></div>
+    </footer>
+  </div>
+
+  <!-- 1. The original app (written for a mouse). -->
+  <script src="app.js"></script>
+  <!-- 2. DPadBridge: a single offline file, no build step, no framework. -->
+  <script src="../../dist/dpad-bridge.js"></script>
+  <!-- 3. The integration: about 30 lines, behind a real on/off toggle. -->
+  <script src="integration.js"></script>
+</body>
+</html>
