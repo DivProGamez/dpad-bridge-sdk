@@ -181,7 +181,7 @@ npm run test:e2e  # 12 browser tests in headless Chromium via Playwright
 - **End-to-end tests** (`test/e2e/demo.spec.js`) drive the real demo in headless Chromium 141: before vs after, real-layout navigation, dialog open/contain/close/restore, one activation per Enter, list scrolling, search typing, filter-driven DOM changes, teardown, reduced motion, and the minimal page over `file://`.
 - **Not tested:** physical Fire TV / Android TV devices and real gamepads. Gamepad support is verified only against mocked Gamepad API objects, and remote keys only as synthesized `keydown` events.
 
-CI (`.github/workflows/ci.yml`) runs both suites on every push and pull request.
+CI (`.github/workflows/ci.yml`) is configured to run both suites on every push and pull request.
 
 ## Browser support
 
