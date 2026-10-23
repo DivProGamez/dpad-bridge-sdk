@@ -5,27 +5,27 @@
 
   var PHOTOS = 'assets/photos/';
   var RECIPES = [
-    { id: 'shakshuka', name: 'Shakshuka', mins: 25, yield: 'Serves 2', tags: ['veg'],
+    { id: 'shakshuka', steps: ["Warm olive oil in a wide pan. Soften the sliced onion and red peppers for about 8 minutes.", "Stir in the garlic, cumin and paprika and cook for one minute until fragrant.", "Add the chopped tomatoes, season with salt and simmer until the sauce thickens.", "Make small wells in the sauce and crack an egg into each one.", "Cover and cook gently until the whites are set but the yolks are still soft. Serve with bread."], name: 'Shakshuka', mins: 25, yield: 'Serves 2', tags: ['veg'],
       photo: 'shakshuka.jpg', tall: 'shakshuka-tall.jpg',
       desc: 'Eggs gently poached in a smoky tomato and pepper sauce. Serve with warm bread.',
       ingredients: ['Eggs', 'Tomatoes', 'Red peppers', 'Onion', 'Garlic', 'Cumin', 'Paprika', 'Olive oil'] },
-    { id: 'harira', name: 'Harira soup', mins: 45, yield: 'Serves 6', tags: ['veg'],
+    { id: 'harira', steps: ["Soak the chickpeas overnight, or use cooked chickpeas.", "Soften the chopped onion and celery in a large pot.", "Add the lentils, chickpeas, tomatoes and plenty of water. Simmer for about 30 minutes.", "Stir in the chopped coriander and parsley and simmer a few minutes more.", "Taste, season, and serve with a squeeze of lemon."], name: 'Harira soup', mins: 45, yield: 'Serves 6', tags: ['veg'],
       photo: 'harira.jpg',
       desc: 'Lentils, chickpeas and tomato simmered with fresh herbs, finished with a squeeze of lemon.',
       ingredients: ['Lentils', 'Chickpeas', 'Tomatoes', 'Celery', 'Onion', 'Coriander', 'Parsley', 'Lemons'] },
-    { id: 'salad', name: 'Orange & olive salad', mins: 10, yield: 'Serves 4', tags: ['quick', 'veg'],
+    { id: 'salad', steps: ["Peel the oranges and slice them into rounds.", "Arrange the slices on a plate with thinly sliced red onion.", "Scatter over the black olives and torn mint leaves.", "Dust with cumin and drizzle with olive oil just before serving."], name: 'Orange & olive salad', mins: 10, yield: 'Serves 4', tags: ['quick', 'veg'],
       photo: 'salad.jpg',
       desc: 'Juicy oranges, black olives and crisp greens with cumin and a drizzle of olive oil.',
       ingredients: ['Oranges', 'Black olives', 'Red onion', 'Mint', 'Cumin', 'Olive oil'] },
-    { id: 'tagine', name: 'Chicken tagine', mins: 70, yield: 'Serves 4', tags: [],
+    { id: 'tagine', steps: ["Rub the chicken thighs with ginger, saffron and a little salt.", "Brown the chicken with onion and garlic in the base of the tagine.", "Add a splash of water, cover and cook gently for about 45 minutes.", "Add the preserved lemon and green olives and cook 10 minutes more.", "Spoon the sauce over the chicken and serve hot."], name: 'Chicken tagine', mins: 70, yield: 'Serves 4', tags: [],
       photo: 'tagine.jpg', tall: 'tagine.jpg',
       desc: 'Slow-cooked chicken with preserved lemon, green olives and saffron.',
       ingredients: ['Chicken thighs', 'Preserved lemon', 'Green olives', 'Saffron', 'Ginger', 'Onion', 'Garlic'] },
-    { id: 'msemen', name: 'Msemen flatbread', mins: 35, yield: 'Makes 8', tags: ['veg'],
+    { id: 'msemen', steps: ["Mix the flour, semolina and salt with warm water into a soft, smooth dough.", "Rest the dough, then divide it into small balls and oil them.", "Stretch each ball very thin, brush with butter, and fold it into a square.", "Cook the squares on a hot griddle until golden on both sides.", "Serve warm with honey."], name: 'Msemen flatbread', mins: 35, yield: 'Makes 8', tags: ['veg'],
       photo: 'msemen.jpg', tall: 'msemen.jpg',
       desc: 'Flaky, square griddle bread, great with honey or cheese.',
       ingredients: ['Flour', 'Semolina', 'Butter', 'Olive oil', 'Salt', 'Honey'] },
-    { id: 'chebakia', name: 'Sesame cookies', mins: 15, yield: 'Makes 12', tags: ['quick', 'sweet', 'veg'],
+    { id: 'chebakia', steps: ["Mix the flour, ground almonds, sesame seeds and melted butter into a dough.", "Roll it out and cut it into small rounds.", "Bake until golden.", "Warm the honey with orange blossom water and glaze the warm cookies.", "Sprinkle with more sesame seeds and let them set."], name: 'Sesame cookies', mins: 15, yield: 'Makes 12', tags: ['quick', 'sweet', 'veg'],
       photo: 'cookies.jpg',
       desc: 'Crisp sesame cookies glazed with honey and orange blossom.',
       ingredients: ['Sesame seeds', 'Flour', 'Butter', 'Honey', 'Orange blossom water', 'Almonds'] },
@@ -163,8 +163,89 @@
     document.querySelector('#add-to-list span').textContent = 'Add to shopping list';
     document.getElementById('list-feedback').textContent = '';
     syncFav();
+    exitCooking(false);
     dialog.showModal();
   }
+
+  // --- guided cooking inside the dialog (real steps, no fake timers)
+  var cook = { active: false, step: 0, done: false };
+  var cookPanel = document.getElementById('cook-panel');
+  var info = document.getElementById('recipe-info');
+
+  function startCooking() {
+    cook = { active: true, step: 0, done: false };
+    info.hidden = true;
+    cookPanel.hidden = false;
+    renderCooking();
+    document.getElementById('cook-next').focus();
+  }
+
+  function exitCooking(restoreFocus) {
+    cook.active = false;
+    cookPanel.hidden = true;
+    info.hidden = false;
+    if (restoreFocus) document.getElementById('start-cooking').focus();
+  }
+
+  function renderCooking() {
+    var steps = openRecipe.steps;
+    var total = steps.length;
+    var prev = document.getElementById('cook-prev');
+    var next = document.getElementById('cook-next');
+    var finish = document.getElementById('cook-finish');
+    var exit = document.querySelector('#cook-exit span');
+    document.getElementById('cook-label').textContent = 'Cooking · ' + openRecipe.name;
+    if (cook.done) {
+      document.getElementById('cook-progress-text').textContent = 'All ' + total + ' steps done';
+      document.getElementById('cook-step').textContent = 'Finished! Enjoy your ' + openRecipe.name.toLowerCase() + '.';
+      setProgress(100);
+      prev.hidden = next.hidden = finish.hidden = true;
+      exit.textContent = 'Back to recipe';
+      return;
+    }
+    document.getElementById('cook-progress-text').textContent = 'Step ' + (cook.step + 1) + ' of ' + total;
+    document.getElementById('cook-step').textContent = steps[cook.step];
+    setProgress(((cook.step + 1) / total) * 100);
+    prev.hidden = false;
+    prev.disabled = cook.step === 0;
+    var last = cook.step === total - 1;
+    next.hidden = last;
+    finish.hidden = !last;
+    exit.textContent = 'Exit cooking';
+  }
+
+  function setProgress(pct) {
+    document.getElementById('cook-bar-fill').style.width = pct + '%';
+    document.getElementById('cook-bar').setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
+
+  // Keep keyboard/remote focus on a visible, enabled control after a step change.
+  function keepFocus(preferred) {
+    var a = document.activeElement;
+    if (a && cookPanel.contains(a) && !a.hidden && !a.disabled) return;
+    for (var i = 0; i < preferred.length; i++) {
+      var el = document.getElementById(preferred[i]);
+      if (!el.hidden && !el.disabled) { el.focus(); return; }
+    }
+  }
+
+  document.getElementById('cook-next').addEventListener('click', function () {
+    cook.step = Math.min(cook.step + 1, openRecipe.steps.length - 1);
+    renderCooking();
+    keepFocus(['cook-next', 'cook-finish']);
+  });
+  document.getElementById('cook-prev').addEventListener('click', function () {
+    cook.step = Math.max(cook.step - 1, 0);
+    renderCooking();
+    keepFocus(['cook-prev', 'cook-next']);
+  });
+  document.getElementById('cook-finish').addEventListener('click', function () {
+    cook.done = true;
+    renderCooking();
+    keepFocus(['cook-exit']);
+  });
+  document.getElementById('cook-exit').addEventListener('click', function () { exitCooking(true); });
+  dialog.addEventListener('close', function () { exitCooking(false); });
 
   function syncFav() {
     var on = !!favorites[openRecipe.id];
@@ -177,6 +258,7 @@
   document.getElementById('start-cooking').addEventListener('click', function () {
     startCount += 1;
     document.getElementById('start-count').textContent = String(startCount);
+    startCooking();
   });
 
   document.getElementById('fav-button').addEventListener('click', function () {

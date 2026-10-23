@@ -248,6 +248,17 @@ h1 em { color: var(--saffron); font-style: italic; }
 .fav-toggle .ic-on { display: none; color: var(--danger); }
 .fav-toggle[aria-pressed="true"] .ic-on { display: block; }
 .fav-toggle[aria-pressed="true"] .ic-off { display: none; }
+.cook { margin-top: calc(6 * var(--u)); }
+.cook-head { display: flex; justify-content: space-between; align-items: baseline; }
+.cook-head .eyebrow { color: var(--saffron); margin: 0; }
+.cook-count { font-weight: 700; color: var(--cream); font-size: calc(15 * var(--u)); }
+.cook-bar { height: calc(8 * var(--u)); border-radius: 99px; background: rgba(255, 255, 255, .08); margin: calc(10 * var(--u)) 0 calc(18 * var(--u)); overflow: hidden; }
+.cook-bar span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #ffcd55, var(--saffron-2)); }
+@media (prefers-reduced-motion: no-preference) { .cook-bar span { transition: width .25s ease-out; } }
+.cook-step { font-size: calc(21 * var(--u)); line-height: 1.45; color: var(--cream); margin: 0 0 calc(22 * var(--u)); min-height: 4.4em; }
+.btn .r90 { transform: rotate(90deg); } .btn .r270 { transform: rotate(270deg); }
+.btn[disabled] { opacity: .4; cursor: default; }
+.dialog [hidden] { display: none !important; }
 .dialog-foot { display: flex; justify-content: space-between; gap: calc(16 * var(--u)); margin: calc(16 * var(--u)) 0 0; color: var(--muted); font-size: calc(14 * var(--u)); }
 .dialog-foot strong { color: var(--cream); }
 .list-feedback { color: var(--success); font-weight: 600; text-align: right; }
