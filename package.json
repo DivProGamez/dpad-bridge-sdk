@@ -1,0 +1,66 @@
+{
+  "name": "dpad-bridge-sdk",
+  "version": "0.1.0",
+  "description": "Make ordinary DOM web interfaces navigable with a TV remote (D-pad) and gamepad: spatial focus, OK/Back, scroll reveal and modal focus restore. Plain JavaScript, no framework, works offline.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "browser": "./dist/dpad-bridge.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist",
+    "types",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:check": "node scripts/build.mjs --check",
+    "test": "node --test test/*.test.js && node scripts/build.mjs --check",
+    "test:unit": "node --test test/*.test.js",
+    "test:e2e": "playwright test",
+    "demo": "node scripts/serve.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "keywords": [
+    "spatial-navigation",
+    "d-pad",
+    "dpad",
+    "tv",
+    "fire-tv",
+    "remote-control",
+    "gamepad",
+    "focus-management",
+    "accessibility",
+    "keyboard-navigation"
+  ],
+  "author": "DivProGamez",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DivProGamez/dpad-bridge-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DivProGamez/dpad-bridge-sdk/issues"
+  },
+  "homepage": "https://github.com/DivProGamez/dpad-bridge-sdk#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "esbuild": "^0.28.2",
+    "jsdom": "^29.1.1"
+  }
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DPadBridge: minimal example</title>
+  <style>
+    body { margin: 0; padding: 40px; background: #101318; color: #eee; font: 20px/1.4 system-ui, sans-serif; }
+    .row { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+    button, a.tile { font: inherit; color: inherit; background: #1f2633; border: 1px solid #333c4d; border-radius: 10px; padding: 18px 26px; text-decoration: none; cursor: pointer; }
+    .tile { display: inline-block; width: 160px; text-align: center; }
+    #out { color: #ffd60a; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+  <h1>Minimal DPadBridge page</h1>
+  <p>Use the arrow keys, Enter and Esc. Open this file straight from disk; it needs no server.</p>
+  <div class="row">
+    <button onclick="say('Play')">Play</button>
+    <button onclick="say('Episodes')">Episodes</button>
+    <button onclick="say('Settings')">Settings</button>
+    <button disabled>Disabled (skipped)</button>
+  </div>
+  <div class="row">
+    <div class="tile" data-dpad-focusable onclick="say('Tile 1')">Tile 1</div>
+    <div class="tile" data-dpad-focusable onclick="say('Tile 2')">Tile 2</div>
+    <div class="tile" data-dpad-focusable onclick="say('Tile 3')">Tile 3</div>
+  </div>
+  <p id="out" aria-live="polite"></p>
+
+  <script src="../../dist/dpad-bridge.js"></script>
+  <script>
+    function say(text) { document.getElementById('out').textContent = 'Activated: ' + text; }
+
+    // The 5-line quick start:
+    var bridge = DPadBridge.createDPadBridge({
+      root: document.body,
+      onBack: function () { say('Back pressed'); return true; },
+    });
+    bridge.mount();
+  </script>
+</body>
+</html>
